@@ -1,1 +1,1 @@
-FROM itsafeaturemythic/python38_payload:0.1.1
+FROM itsafeaturemythic/xgolang_payload:0.1.4
