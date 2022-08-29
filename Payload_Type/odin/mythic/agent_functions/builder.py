@@ -35,21 +35,7 @@ class MyAgent(PayloadType):
             description="Choose the agent's architecture ",
             choices=["AMD_x64", "ARM_x64"],
             default_value="AMD_x64",
-        ),
-        BuildParameter(
-            name="proxy_bypass",
-            parameter_type=BuildParameterType.Boolean,
-            default_value=False,
-            description="Ignore HTTP proxy environment settings configured on the target host?",
-        ),
-        BuildParameter(
-            name="garble",
-            description="Use Garble to obfuscate the output Go executable. "
-            "\nWARNING - This significantly slows the agent build time.",
-            parameter_type=BuildParameterType.Boolean,
-            default_value=True,
-            required=False,
-        ),
+        )
     ]
     #  the names of the c2 profiles that your agent supports
     c2_profiles = ["websocket", "http", "odin_tcp", "smb","dynamichttp","dns"]
@@ -113,14 +99,6 @@ class MyAgent(PayloadType):
                 command += "CC=o64-clang CXX=o64-clang++ "
             elif target_os == "windows":
                 command += "CC=x86_64-w64-mingw32-gcc "
-            # command += "export GOGARBLE=golang.org,github.com,howett.net;"
-            # command += "export GOGARBLE=$GOGARBLE,vendor,net,internal,reflect,crypto,strings,math,compress,compress,syscall,os,unicode,context,regexp,sync,strconv,sort,fmt,bytes,path,bufio,log,mime,hash,container;"
-            command += "GOGARBLE=* "
-            if self.get_parameter("garble"):
-                command += (
-                    "/go/src/bin/garble -tiny -literals -debug -seed random build "
-                )
-            else:
                 command += "go build "
                 # This shouldn't be necessary
                 # Don't include encoding
