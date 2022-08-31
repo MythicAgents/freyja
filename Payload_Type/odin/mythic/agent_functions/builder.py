@@ -4,6 +4,9 @@ from mythic_payloadtype_container.MythicRPC import *
 import sys
 import json
 
+# Enable additional message details to the Mythic UI
+debug = True
+
 #define your payload type class here, it must extend the PayloadType class though
 class Odin(PayloadType):
 
