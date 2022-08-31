@@ -2,7 +2,7 @@ from mythic_payloadtype_container.MythicCommandBase import *
 from mythic_payloadtype_container.MythicRPC import *
 
 
-class ShellArguments(TaskArguments):
+class PowerShellArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
         super().__init__(command_line, **kwargs)
         self.args = [
@@ -18,7 +18,7 @@ class ShellArguments(TaskArguments):
         self.load_args_from_dictionary(dictionary_arguments)
 
 
-class ShellCommand(CommandBase):
+class PowerShellCommand(CommandBase):
     cmd = "powershell"
     needs_admin = False
     help_cmd = "powershell {command}"
@@ -26,7 +26,7 @@ class ShellCommand(CommandBase):
     version = 1
     author = "@antman1p"
     attackmapping = ["T1059", "T1059.001"]
-    argument_class = ShellArguments
+    argument_class = PowerShellArguments
     attributes = CommandAttributes(
         suggested_command=True
     )
