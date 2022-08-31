@@ -256,7 +256,6 @@ func handleNewTask() {
 				os.Exit(0)
 				break
 			case 1:
-				// Run shell command
 				go bash_executor.Run(task)
 				break
 			case 2:
