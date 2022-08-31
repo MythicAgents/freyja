@@ -25,11 +25,11 @@ class Odin(PayloadType):
         BuildParameter(
             name="mode",
             parameter_type=BuildParameterType.ChooseOne,
-            description="Choose the build mode option. The default is executable, "
+            description="Choose the build mode option. The default is an executable, "
             "c-shared for a .dylib or .so file, "
             "or c-archive for a .Zip containing C source code with an archive and header file",
-            choices=["executable", "c-archive", "c-shared"],
-            default_value="executable",
+            choices=["default", "c-archive", "c-shared"],
+            default_value="default",
         ),
         BuildParameter(
             name="architecture",
@@ -138,7 +138,7 @@ class Odin(PayloadType):
                     resp.build_stderr += f"\n[BUILD]{command}\n"
 
             # default build mode
-            if self.get_parameter("mode") == "executable":
+            if self.get_parameter("mode") == "default":
                 # Linux
                 if target_os == "linux" or target_os == "windows":
                     if os.path.exists(f"/build/odin-{target_os}-{goarch}"):
