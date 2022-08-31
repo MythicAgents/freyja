@@ -53,7 +53,7 @@ var tasktypes = map[string]int{
 	"upload":            5,
 	"sh_executor":       6,
   "zsh_executor":      7,
-	"sleep":             9,
+	"sleep":             8,
 	"none":              NONE_CODE,
 }
 
