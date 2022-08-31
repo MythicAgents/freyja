@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
-	// Poseidon
+	// Odin
 
-	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/pkg/utils/structs"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/utils/structs"
 )
 
 //Run - Function that executes the zsh_executor command
