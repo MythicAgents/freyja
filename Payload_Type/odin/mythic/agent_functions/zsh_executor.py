@@ -33,14 +33,14 @@ class ZshCommand(CommandBase):
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,
-            artifact="/bin/zsh -c {}".format(task.args.get_arg("command")),
+            artifact="/bin/zsh -c {}".format(task.args.command_line),
             artifact_type="Process Create",
         )
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,
-            artifact="{}".format(task.args.get_arg("command")),
+            artifact="{}".format(task.args.command_line),
             artifact_type="Process Create",
         )
-        task.display_params = task.args.get_arg("command")
+        #task.display_params = task.args.get_arg("command")
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -33,11 +33,11 @@ class ShCommand(CommandBase):
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,
-            artifact="/bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact="/bin/sh -c {}".format(task.args.command_line),
             artifact_type="Process Create",
         )
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,
-            artifact="{}".format(task.args.get_arg("command")),
+            artifact="{}".format(task.args.command_line),
             artifact_type="Process Create",
         )
         task.display_params = task.args.get_arg("command")
