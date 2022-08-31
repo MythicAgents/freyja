@@ -5,29 +5,28 @@ import sys
 import json
 
 #define your payload type class here, it must extend the PayloadType class though
-class MyAgent(PayloadType):
+class Odin(PayloadType):
 
-    name = "odin"  # name that would show up in the UI
-    file_extension = "bin"  # default file extension to use when creating payloads
-    author = "@antman1p"  # author of the payload type
-    supported_os = [  # supported OS and architecture combos
-        SupportedOS.Windows, SupportedOS.Linux, SupportedOS.MacOS # update this list with all the OSes your agent supports
+    name = "odin"
+    file_extension = "bin"
+    author = "@antman1p"
+    supported_os = [
+        SupportedOS.Windows, SupportedOS.Linux, SupportedOS.MacOS
     ]
-    wrapper = False  # does this payload type act as a wrapper for another payloads inside of it?
-    # if the payload supports any wrapper payloads, list those here
-    wrapped_payloads = [] # ex: "service_wrapper"
-    note = "A cross-platform Purple Team Campaign Agent"
-    supports_dynamic_loading = False  # setting this to True allows users to only select a subset of commands when generating a payload
+    wrapper = False
+    wrapped_payloads = []
+    note = "A Cross-Platform Purple Team Campaign Agent"
+    supports_dynamic_loading = False
     mythic_encrypts = True
     build_parameters = [
         BuildParameter(
             name="mode",
             parameter_type=BuildParameterType.ChooseOne,
-            description="Choose the build mode option. Select default for executables, "
+            description="Choose the build mode option. The default is executable, "
             "c-shared for a .dylib or .so file, "
             "or c-archive for a .Zip containing C source code with an archive and header file",
-            choices=["default", "c-archive", "c-shared"],
-            default_value="default",
+            choices=["executable", "c-archive", "c-shared"],
+            default_value="executable",
         ),
         BuildParameter(
             name="architecture",
@@ -38,7 +37,7 @@ class MyAgent(PayloadType):
         )
     ]
     #  the names of the c2 profiles that your agent supports
-    c2_profiles = ["websocket", "http", "odin_tcp", "smb","dynamichttp","dns"]
+    c2_profiles = ["websocket", "http", "odin_tcp", "smb", "dynamichttp", "dns"]
     translation_container = None
     # after your class has been instantiated by the mythic_service in this docker container and all required build parameters have values
     # then this function is called to actually build the payload
@@ -57,7 +56,7 @@ class MyAgent(PayloadType):
         try:
             agent_build_path = "/Mythic/agent_code"
 
-            # Get the selected C2 profile information (e.g., http or websocket)
+            # Get the selected C2 profile information (e.g., http, websocket, etc....)
             c2 = self.c2info[0]
             profile = c2.get_c2profile()["name"]
             if profile not in self.c2_profiles:
@@ -136,7 +135,7 @@ class MyAgent(PayloadType):
                     resp.build_stderr += f"\n[BUILD]{command}\n"
 
             # default build mode
-            if self.get_parameter("mode") == "default":
+            if self.get_parameter("mode") == "executable":
                 # Linux
                 if target_os == "linux" or target_os == "windows":
                     if os.path.exists(f"/build/odin-{target_os}-{goarch}"):
