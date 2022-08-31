@@ -18,6 +18,8 @@ import (
   "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/cmd_executor"
   "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/powershell_executor"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/upload"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/profiles"
+  "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/utils/structs"
 )
 import (
 	"encoding/binary"
