@@ -107,7 +107,7 @@ class Odin(PayloadType):
                 command += "CC=o64-clang CXX=o64-clang++ "
             elif target_os == "windows":
                 command += "CC=x86_64-w64-mingw32-gcc "
-                command += "go build "
+            command += "go build "
                 # This shouldn't be necessary
                 # Don't include encoding
             command += f"{go_cmd} -o /build/odin-{target_os}"
