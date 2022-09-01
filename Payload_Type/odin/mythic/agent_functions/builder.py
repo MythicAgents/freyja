@@ -1,7 +1,8 @@
 from mythic_payloadtype_container.PayloadBuilder import *
 from mythic_payloadtype_container.MythicCommandBase import *
-from mythic_payloadtype_container.MythicRPC import *
-import sys
+import asyncio
+import os
+import shutil
 import json
 
 # Enable additional message details to the Mythic UI
