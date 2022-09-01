@@ -1,7 +1,6 @@
 // +build windows
 
 package functions
-
 import "C"
 import (
 	"fmt"
