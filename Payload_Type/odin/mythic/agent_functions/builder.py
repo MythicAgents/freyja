@@ -37,6 +37,12 @@ class Odin(PayloadType):
             description="Choose the agent's architecture ",
             choices=["AMD_x64", "ARM_x64"],
             default_value="AMD_x64",
+        ),
+         BuildParameter(
+            name="proxy_bypass",
+            parameter_type=BuildParameterType.Boolean,
+            default_value=False,
+            description="Ignore HTTP proxy environment settings configured on the target host?",
         )
     ]
     #  the names of the c2 profiles that your agent supports
