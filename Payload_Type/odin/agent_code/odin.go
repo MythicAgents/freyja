@@ -16,7 +16,7 @@ import (
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/download"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/powershell_executor"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/sh_executor"
-	"github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/socks"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/socks"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/upload"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/zsh_executor"
 	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/pkg/profiles"
@@ -27,9 +27,9 @@ import (
 	"encoding/binary"
 	"os"
 
-	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/link_tcp"
-	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/sleep"
-	"github.com/MythicAgents/poseidon/Payload_Type/odin/agent_code/unlink_tcp"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/link_tcp"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/sleep"
+	"github.com/MythicAgents/odin/Payload_Type/odin/agent_code/unlink_tcp"
 )
 
 const (
