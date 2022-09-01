@@ -1,25 +1,19 @@
 from mythic_payloadtype_container.MythicCommandBase import *
+import json
 from mythic_payloadtype_container.MythicRPC import *
 
 
 class ShArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
         super().__init__(command_line, **kwargs)
-        self.args = [
-            CommandParameter(name="command", display_name="Command", type=ParameterType.String, description="Command to run"),
-        ]
+        self.args = []
 
     async def parse_arguments(self):
-        if len(self.command_line) == 0:
-            raise ValueError("Must supply a command to run")
-        self.add_arg("command", self.command_line)
-
-    async def parse_dictionary(self, dictionary_arguments):
-        self.load_args_from_dictionary(dictionary_arguments)
+        pass
 
 
 class ShCommand(CommandBase):
-    cmd = "sh"
+    cmd = "sh_executor"
     needs_admin = False
     help_cmd = "sh {command}"
     description = "Execute a shell command using 'sh -c'"
@@ -40,7 +34,6 @@ class ShCommand(CommandBase):
             artifact="{}".format(task.args.command_line),
             artifact_type="Process Create",
         )
-        task.display_params = task.args.get_arg("command")
         return task
 
     async def process_response(self, response: AgentResponse):
