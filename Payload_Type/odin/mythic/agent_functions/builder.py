@@ -47,7 +47,7 @@ class Odin(PayloadType):
         )
     ]
     #  the names of the c2 profiles that your agent supports
-    c2_profiles = ["websocket", "http", "odin_tcp", "smb", "dynamichttp", "dns"]
+    c2_profiles = ["websocket", "http", "odin_tcp"]
     translation_container = None
     # after your class has been instantiated by the mythic_service in this docker container and all required build parameters have values
     # then this function is called to actually build the payload
