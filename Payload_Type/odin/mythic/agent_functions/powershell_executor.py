@@ -1,4 +1,5 @@
 from mythic_payloadtype_container.MythicCommandBase import *
+import json
 from mythic_payloadtype_container.MythicRPC import *
 
 
@@ -19,7 +20,7 @@ class PowerShellArguments(TaskArguments):
 
 
 class PowerShellCommand(CommandBase):
-    cmd = "powershell"
+    cmd = "powershell_executor"
     needs_admin = False
     help_cmd = "powershell {command}"
     description = "Execute a shell command using 'powershell'"

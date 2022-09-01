@@ -1,4 +1,5 @@
 from mythic_payloadtype_container.MythicCommandBase import *
+import json
 from mythic_payloadtype_container.MythicRPC import *
 
 
@@ -19,7 +20,7 @@ class CmdArguments(TaskArguments):
 
 
 class CmdCommand(CommandBase):
-    cmd = "cmd"
+    cmd = "cmd_executor"
     needs_admin = False
     help_cmd = "cmd /C {command}"
     description = "Execute a shell command using 'cmd /C'"

@@ -1,4 +1,5 @@
 from mythic_payloadtype_container.MythicCommandBase import *
+import json
 from mythic_payloadtype_container.MythicRPC import *
 
 
@@ -19,7 +20,7 @@ class ZshArguments(TaskArguments):
 
 
 class ZshCommand(CommandBase):
-    cmd = "zsh"
+    cmd = "zsh_executor"
     needs_admin = False
     help_cmd = "zsh {command}"
     description = "Execute a shell command using 'zsh -c'"

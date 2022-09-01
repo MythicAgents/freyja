@@ -1,4 +1,5 @@
 from mythic_payloadtype_container.MythicCommandBase import *
+import json
 from mythic_payloadtype_container.MythicRPC import *
 
 
@@ -19,7 +20,7 @@ class BashArguments(TaskArguments):
 
 
 class BashCommand(CommandBase):
-    cmd = "bash"
+    cmd = "bash_executor"
     needs_admin = False
     help_cmd = "bash {command}"
     description = "Execute a shell command using 'bash -c'"
