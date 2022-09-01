@@ -6,17 +6,10 @@ from mythic_payloadtype_container.MythicRPC import *
 class CmdArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
         super().__init__(command_line, **kwargs)
-        self.args = [
-            CommandParameter(name="command", display_name="Command", type=ParameterType.String, description="Command to run"),
-        ]
+        self.args = []
 
     async def parse_arguments(self):
-        if len(self.command_line) == 0:
-            raise ValueError("Must supply a command to run")
-        self.add_arg("command", self.command_line)
-
-    async def parse_dictionary(self, dictionary_arguments):
-        self.load_args_from_dictionary(dictionary_arguments)
+        pass
 
 
 class CmdCommand(CommandBase):
