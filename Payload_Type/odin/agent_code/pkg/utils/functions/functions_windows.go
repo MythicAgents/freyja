@@ -44,6 +44,7 @@ func getStringFromBytes(data [65]byte) string {
 }
 func getOS() string {
 		return gostring(C.GetOSVersion())
+		//return runtime.GOOS
 }
 func getUser() string {
 	currentUser, err := user.Current()
