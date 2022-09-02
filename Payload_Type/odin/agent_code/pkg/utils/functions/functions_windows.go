@@ -1,6 +1,8 @@
 // +build windows
 package functions
-// why do i need a fucking comment here?
+/*
+#include <stdlib.h>
+*/
 import "C"
 import (
 	"fmt"
@@ -42,8 +44,8 @@ func getStringFromBytes(data [65]byte) string {
 	return string(stringData[:])
 }
 func getOS() string {
-		return gostring(C.GetOSVersion())
-		//return runtime.GOOS
+	return gostring(C.GetOSVersion())
+	//return runtime.GOOS
 }
 func getUser() string {
 	currentUser, err := user.Current()
