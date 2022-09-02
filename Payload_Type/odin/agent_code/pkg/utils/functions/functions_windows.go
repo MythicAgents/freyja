@@ -1,9 +1,7 @@
 // +build windows
-
 package functions
-
+import "C"
 import (
-	"C"
 	"fmt"
 	"os"
 	"os/user"
