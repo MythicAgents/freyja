@@ -9,7 +9,7 @@ import (
 	"unicode/utf16"
 	"syscall"
 	"strconv"
-
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
