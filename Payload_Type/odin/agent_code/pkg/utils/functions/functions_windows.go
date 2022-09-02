@@ -1,5 +1,6 @@
 // +build windows
 package functions
+// why do i need a fucking comment here?
 import "C"
 import (
 	"fmt"
