@@ -1,5 +1,5 @@
-//go:build (linux || darwin) && http
-// +build linux darwin
+//go:build (linux || darwin || windows) && http
+// +build linux darwin windows
 // +build http
 
 package profiles
