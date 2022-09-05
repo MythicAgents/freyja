@@ -22,7 +22,7 @@ func Run(task structs.Task) {
 			return
 	}
 
-	cmd := exec.Command(pwrshellBin)
+	cmd := exec.Command(pwrshellBin, "--nologo", "--noprofile")
 	cmd.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out
