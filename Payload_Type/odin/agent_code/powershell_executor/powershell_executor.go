@@ -3,7 +3,6 @@ package powershell_executor
 import (
 	// Standard
 	"bytes"
-	"os"
 	"os/exec"
 	"strings"
 
