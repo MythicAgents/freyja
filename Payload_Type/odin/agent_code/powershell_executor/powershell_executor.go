@@ -18,7 +18,7 @@ func Run(task structs.Task) {
 	msg.TaskID = task.TaskID
 	pwrshellBin := "powershell"
 	if _, err := os.Stat(pwrshellBin); err != nil {
-			msg.SetError("Could not find powershell.exe " + err)
+			msg.SetError(err)
 			task.Job.SendResponses <- msg
 			return
 	}
