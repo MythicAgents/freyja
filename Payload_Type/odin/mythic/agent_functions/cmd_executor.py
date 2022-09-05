@@ -15,7 +15,7 @@ class CmdArguments(TaskArguments):
 class CmdCommand(CommandBase):
     cmd = "cmd_executor"
     needs_admin = False
-    help_cmd = "cmd /C {command}"
+    help_cmd = "cmd_executor {command}"
     description = "Execute a shell command using 'cmd /C'"
     version = 1
     author = "@antman1p"

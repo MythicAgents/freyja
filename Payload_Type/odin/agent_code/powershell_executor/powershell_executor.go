@@ -16,13 +16,15 @@ func Run(task structs.Task) {
 	msg := structs.Response{}
 	msg.TaskID = task.TaskID
 	pwrshellBin := "powershell"
+	arg1 := "-nologo"
+	arg2 := "-noprofile"
 	if _, err := exec.LookPath(pwrshellBin); err != nil {
 			msg.SetError("Could not find powershell.exe ")
 			task.Job.SendResponses <- msg
 			return
 	}
 
-	cmd := exec.Command(pwrshellBin, "-nologo", "-noprofile")
+	cmd := exec.Command(pwrshellBin, arg1, arg2)
 	cmd.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out
