@@ -23,7 +23,7 @@ func Run(task structs.Task) {
 			return
 	}
 
-	cmd := exec.Command(cmdBin, arg1)
+	cmd := exec.Command(cmdBin, arg1).Output()
 	cmd.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out
