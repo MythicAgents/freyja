@@ -4,7 +4,6 @@ import (
 	// Standard
 	"bytes"
 	"os/exec"
-	//"strings"
 
 	// Odin
 
@@ -24,7 +23,6 @@ func Run(task structs.Task) {
 	}
 
 	cmd := exec.Command(cmdBin, arg1, task.Params)
-	//md.Stdin = strings.NewReader(task.Params)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
