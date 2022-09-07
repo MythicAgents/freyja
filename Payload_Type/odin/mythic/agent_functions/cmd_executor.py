@@ -22,7 +22,8 @@ class CmdCommand(CommandBase):
     attackmapping = ["T1059", "T1059.003"]
     argument_class = CmdArguments
     attributes = CommandAttributes(
-        suggested_command=True
+        suggested_command=True,
+        supported_os=[SupportedOS.Windows]
     )
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:

@@ -22,7 +22,8 @@ class ShCommand(CommandBase):
     attackmapping = ["T1059", "T1059.004"]
     argument_class = ShArguments
     attributes = CommandAttributes(
-        suggested_command=True
+        suggested_command=True,
+        supported_os=[SupportedOS.MacOS, SupportedOS.Linux]
     )
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:

@@ -21,7 +21,8 @@ class ZshCommand(CommandBase):
     attackmapping = ["T1059", "T1059.004"]
     argument_class = ZshArguments
     attributes = CommandAttributes(
-        suggested_command=True
+        suggested_command=True,
+        supported_os=[SupportedOS.MacOS]
     )
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:

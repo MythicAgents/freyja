@@ -20,7 +20,7 @@ class Odin(PayloadType):
     wrapper = False
     wrapped_payloads = []
     note = "A Cross-Platform Purple Team Campaign Agent"
-    supports_dynamic_loading = False
+    supports_dynamic_loading = True
     mythic_encrypts = True
     build_parameters = [
         BuildParameter(
