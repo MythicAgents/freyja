@@ -58,6 +58,9 @@ class SleepCommand(CommandBase):
     author = "@its_a_feature_"
     attackmapping = ["T1029"]
     argument_class = SleepArguments
+    attributes = CommandAttributes(
+        builtin=True
+    )
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         task.display_params = str(task.args.get_arg("interval")) + "s"
@@ -67,4 +70,3 @@ class SleepCommand(CommandBase):
 
     async def process_response(self, response: AgentResponse):
         resp = await MythicRPC().execute("update_callback", task_id=response.task.id, sleep_info=response.response)
-

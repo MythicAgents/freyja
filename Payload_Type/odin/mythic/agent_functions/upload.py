@@ -64,6 +64,9 @@ class UploadCommand(CommandBase):
     author = "@xorrior"
     argument_class = UploadArguments
     attackmapping = ["T1020", "T1030", "T1041", "T1105"]
+    attributes = CommandAttributes(
+        suggested_command=True
+    )
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         try:

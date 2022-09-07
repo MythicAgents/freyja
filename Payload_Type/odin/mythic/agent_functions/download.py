@@ -29,6 +29,9 @@ class DownloadCommand(CommandBase):
     author = "@xorrior"
     argument_class = DownloadArguments
     attackmapping = ["T1020", "T1030", "T1041"]
+    attributes = CommandAttributes(
+        suggested_command=True
+    )
     browser_script = [BrowserScript(script_name="download", author="@djhohnstein"),
                       BrowserScript(script_name="download_new", author="@djhohnstein", for_new_ui=True)]
 
