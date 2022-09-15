@@ -10,6 +10,7 @@ Odin is a Golang cross-platform (macOS, Windows, & Linux) purple team campaign a
 
 ### Highlighted Agent Features
 - Socks5 in agent proxy capability
+- Websockets protocol for C2
 - Optional HMAC+AES with EKE for encrypted comms
 
 ### Compilation Information
