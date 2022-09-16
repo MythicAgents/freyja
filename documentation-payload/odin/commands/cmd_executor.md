@@ -1,5 +1,5 @@
 +++
-title = "shell"
+title = "cmd_executor"
 chapter = false
 weight = 125
 hidden = false

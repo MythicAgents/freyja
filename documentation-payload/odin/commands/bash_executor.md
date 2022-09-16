@@ -1,5 +1,5 @@
 +++
-title = "shell"
+title = "bash_executor"
 chapter = false
 weight = 125
 hidden = false
