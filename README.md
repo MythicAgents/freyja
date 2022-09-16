@@ -1,10 +1,10 @@
-# Odin
+# Odin Purple Team Agent
 
 <p align="center">
   <img alt="Odin Logo" src="documentation-payload/odin/odin.svg" height="30%" width="30%">
 </p>
 
-Odin is a Golang agent that compiles into Windows, Linux and macOS x64 executables.
+Odin is a Golang, Purple Team agent that compiles into Windows, Linux and macOS x64 executables.  It is a very stripped down verion of the [Poseidon](https://github.com/MythicAgents/poseidon) payload from [@xorrior](https://github.com/xorrior), [@djhohnstein](https://github.com/djhohnstein), and [@its-a-feature](https://github.com/its-a-feature)
 It leverages the [karalabe/xgo](https://github.com/karalabe/xgo) project to cross compile with CGO for both of these
 operating systems. This Odin instance supports Mythic 2.3 and will be updated as necessary.
 It does not support Mythic 2.2 and lower.
