@@ -9,6 +9,8 @@ It leverages the [karalabe/xgo](https://github.com/karalabe/xgo) project to cros
 operating systems. This Odin instance supports Mythic 2.3 and will be updated as necessary.
 It does not support Mythic 2.2 and lower.
 
+The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
+
 Odin uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Odin uses these executors to run commands on the vicitm host machines.  Odin will integrate with the upcoming Mythic Purple Team Execution Framework (PTEF) to run ART atomics (test cases) and custom atomics and atomic chains in fully customizable Purple Team campagins.  Stay tuned for the PTEF!
 
 Current Executors:
@@ -17,8 +19,6 @@ Current Executors:
 - macOS zsh
 - Linux/macOS bash
 - Linux/macOS sh
-
-The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
 
 ## How to install an agent in this format within Mythic
 
