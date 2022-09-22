@@ -11,7 +11,7 @@ It does not support Mythic 2.2 and lower.
 
 The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
 
-Odin uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Odin uses these executors to run commands on the vicitm host machines.  Odin will integrate with the upcoming Mythic Purple Team Execution Framework (Name TBD) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the Purple Team Execution Framework!
+Odin uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Odin uses these executors to run commands on the vicitm host machines.  Odin will integrate with the upcoming Mythic Purple Team eXecution Framework (PTXF) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the PTXF!
 
 Current Executors:
 - Windows powershell
