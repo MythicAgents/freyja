@@ -3,7 +3,7 @@ package link_tcp
 import (
 	// Standard
 
-	"encfreyjag/json"
+	"encoding/json"
 	"fmt"
 	"net"
 

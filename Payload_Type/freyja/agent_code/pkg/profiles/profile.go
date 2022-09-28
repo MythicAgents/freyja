@@ -4,9 +4,9 @@ import (
 	// Standard
 
 	"bytes"
-	"encfreyjag/base64"
-	"encfreyjag/binary"
-	"encfreyjag/json"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -362,7 +362,7 @@ func SendFile(sendFileToMythic structs.SendFileToMythicStruct) {
 		fileDownloadData.ChunkNum = int(i) + 1
 		//fileDownloadData.TotalChunks = -1
 		fileDownloadData.FileID = fileDetails["file_id"].(string)
-		fileDownloadData.ChunkData = base64.StdEncfreyjag.EncodeToString(partBuffer)
+		fileDownloadData.ChunkData = base64.Stdencoding.EncodeToString(partBuffer)
 		fileDownloadMsg.Download = &fileDownloadData
 		sendFileToMythic.Task.Job.SendResponses <- fileDownloadMsg
 		newPercentComplete := ((fileDownloadData.ChunkNum * 100) / int(chunks))
@@ -438,7 +438,7 @@ func GetFile(getFileFromMythic structs.GetFileFromMythicStruct) {
 		getFileFromMythic.Task.Job.SendResponses <- response
 	}
 	// start handling the data and sending it to the requesting task
-	decoded, err := base64.StdEncfreyjag.DecodeString(fileUploadMsgResponse.ChunkData)
+	decoded, err := base64.Stdencoding.DecodeString(fileUploadMsgResponse.ChunkData)
 	if err != nil {
 		errResponse := structs.Response{}
 		errResponse.Completed = true
@@ -475,7 +475,7 @@ func GetFile(getFileFromMythic structs.GetFileFromMythicStruct) {
 				return
 			}
 			// Base64 decode the chunk data
-			decoded, err := base64.StdEncfreyjag.DecodeString(fileUploadMsgResponse.ChunkData)
+			decoded, err := base64.Stdencoding.DecodeString(fileUploadMsgResponse.ChunkData)
 			if err != nil {
 				errResponse := structs.Response{}
 				errResponse.Completed = true

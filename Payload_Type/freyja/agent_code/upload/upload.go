@@ -1,7 +1,7 @@
 package upload
 
 import (
-	"encfreyjag/json"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"

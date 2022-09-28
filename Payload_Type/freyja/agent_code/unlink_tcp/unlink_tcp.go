@@ -3,7 +3,7 @@ package unlink_tcp
 import (
 	// Standard
 
-	"encfreyjag/json"
+	"encoding/json"
 
 	// Freyja
 

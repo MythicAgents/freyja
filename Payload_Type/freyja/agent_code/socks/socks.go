@@ -4,8 +4,8 @@ import (
 	// Standard
 	"bufio"
 	"bytes"
-	"encfreyjag/base64"
-	"encfreyjag/json"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -147,7 +147,7 @@ func readFromMythic(fromMythicSocksChannel chan structs.SocksMsg, toMythicSocksC
 		case curMsg := <-fromMythicSocksChannel:
 			//now we have a message, process it
 			//fmt.Println("about to lock in mythic read")
-			data, err := base64.StdEncfreyjag.DecodeString(curMsg.Data)
+			data, err := base64.Stdencoding.DecodeString(curMsg.Data)
 			if err != nil {
 				//fmt.Printf("Failed to decode message")
 				continue
@@ -195,7 +195,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 		bytesToSend := SendReply(nil, ServerFailure, nil)
 		msg := structs.SocksMsg{}
 		msg.ServerId = channelId
-		msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+		msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 		msg.Exit = true
 		toMythicSocksChannel <- msg
 		//fmt.Printf("Telling mythic locally to exit channel in connectToProxy %d, exit going back to mythic too\n", channelId)
@@ -224,7 +224,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 		bytesToSend := SendReply(nil, AddrTypeNotSupported, nil)
 		msg := structs.SocksMsg{}
 		msg.ServerId = channelId
-		msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+		msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 		msg.Exit = true
 		toMythicSocksChannel <- msg
 		//fmt.Printf("Telling mythic locally to exit channel %d from bad address, exit going back to mythic too\n", channelId)
@@ -252,7 +252,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 			bytesToSend := SendReply(nil, HostUnreachable, nil)
 			msg := structs.SocksMsg{}
 			msg.ServerId = channelId
-			msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+			msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 			msg.Exit = true
 			toMythicSocksChannel <- msg
 			//fmt.Printf("Telling mythic locally to exit channel %d from unresolved fqdn, exit going back to mythic too\n", channelId)
@@ -281,7 +281,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 			bytesToSend := SendReply(nil, resp, nil)
 			msg := structs.SocksMsg{}
 			msg.ServerId = channelId
-			msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+			msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 			msg.Exit = true
 			toMythicSocksChannel <- msg
 			//fmt.Printf("Telling mythic locally to exit channel %d from bad command, exit going back to mythic too\n", channelId)
@@ -296,7 +296,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 		bytesToSend := SendReply(nil, SuccessReply, &bind)
 		msg := structs.SocksMsg{}
 		msg.ServerId = channelId
-		msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+		msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 		msg.Exit = false
 		//fmt.Printf("channel (%d) Sending %v\n", channelId, msg.Data)
 		toMythicSocksChannel <- msg
@@ -308,7 +308,7 @@ func connectToProxy(fromMythicSocksChannel chan structs.SocksMsg, channelId int3
 		bytesToSend := SendReply(nil, CommandNotSupported, nil)
 		msg := structs.SocksMsg{}
 		msg.ServerId = channelId
-		msg.Data = base64.StdEncfreyjag.EncodeToString(bytesToSend)
+		msg.Data = base64.Stdencoding.EncodeToString(bytesToSend)
 		msg.Exit = true
 		toMythicSocksChannel <- msg
 		//fmt.Printf("Telling mythic locally to exit channel %d from default command case, exit going back to mythic too\n", channelId)
@@ -347,7 +347,7 @@ func readFromProxy(fromMythicSocksChannel chan structs.SocksMsg, conn net.Conn, 
 		if totalRead > 0 {
 			msg := structs.SocksMsg{}
 			msg.ServerId = channelId
-			msg.Data = base64.StdEncfreyjag.EncodeToString(bufIn[:totalRead])
+			msg.Data = base64.Stdencoding.EncodeToString(bufIn[:totalRead])
 			msg.Exit = false
 			toMythicSocksChannel <- msg
 		}
@@ -380,7 +380,7 @@ func writeToProxy(fromMythicSocksChannel chan structs.SocksMsg, conn net.Conn, c
 			//go removeMutexMap(channelMap, channelId, conn)
 			return
 		}
-		data, err := base64.StdEncfreyjag.DecodeString(bufOut.Data)
+		data, err := base64.Stdencoding.DecodeString(bufOut.Data)
 		if err != nil {
 			//fmt.Printf("Bad base64 data received\n")
 			w.Flush()

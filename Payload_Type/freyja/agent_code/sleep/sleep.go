@@ -2,7 +2,7 @@ package sleep
 
 import (
 	// Standard
-	"encfreyjag/json"
+	"encoding/json"
 
 	// Freyja
 

