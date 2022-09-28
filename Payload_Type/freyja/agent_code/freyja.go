@@ -24,7 +24,7 @@ import (
 
 )
 import (
-	"encfreyjag/binary"
+	"encoding/binary"
 	"os"
 
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/link_tcp"

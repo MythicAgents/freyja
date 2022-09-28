@@ -1,7 +1,7 @@
 package structs
 
 import (
-	"encfreyjag/json"
+	"encoding/json"
 	"net"
 	"os"
 )
