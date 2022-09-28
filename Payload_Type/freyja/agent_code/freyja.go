@@ -4,7 +4,7 @@ import (
 	"C"
 
 	// Standard
-	"encfreyjag/json"
+	"encoding/json"
 	"fmt"
 	"net"
 	"sort"
