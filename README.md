@@ -1,17 +1,17 @@
-# Odin Purple Team Agent
+# Freyja Purple Team Agent
 
 <p align="center">
-  <img alt="Odin Logo" src="documentation-payload/odin/odin.svg" height="30%" width="30%">
+  <img alt="Freyja Logo" src="documentation-payload/freyja/freyja.svg" height="30%" width="30%">
 </p>
 
-Odin is a Golang, Purple Team agent that compiles into Windows, Linux and macOS x64 executables.  It is a very stripped down verion of the [Poseidon](https://github.com/MythicAgents/poseidon) payload from [@xorrior](https://github.com/xorrior), [@djhohnstein](https://github.com/djhohnstein), and [@its-a-feature](https://github.com/its-a-feature)
+Freyja is a Golang, Purple Team agent that compiles into Windows, Linux and macOS x64 executables.  It is a very stripped down verion of the [Poseidon](https://github.com/MythicAgents/poseidon) payload from [@xorrior](https://github.com/xorrior), [@djhohnstein](https://github.com/djhohnstein), and [@its-a-feature](https://github.com/its-a-feature)
 It leverages the [karalabe/xgo](https://github.com/karalabe/xgo) project to cross compile with CGO for both of these
-operating systems. This Odin instance supports Mythic 2.3 and will be updated as necessary.
+operating systems. This Freyja instance supports Mythic 2.3 and will be updated as necessary.
 It does not support Mythic 2.2 and lower.
 
 The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
 
-Odin uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Odin uses these executors to run commands on the vicitm host machines.  Odin will integrate with the upcoming Mythic Purple Team eXecution Framework (PTXF) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the PTXF!
+Freyja uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Freyja uses these executors to run commands on the vicitm host machines.  Freyja will integrate with the upcoming Mythic Purple Team eXecution Framework (PTXF) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the PTXF!
 
 Current Executors:
 - Windows powershell
@@ -36,7 +36,7 @@ Now, you might be wondering _when_ should you or a user do this to properly add 
 
 ## Documentation
 
-The Odin documentation source code can be found in the `documenation-payload/odin` directory.
+The Freyja documentation source code can be found in the `documenation-payload/freyja` directory.
 View the rendered documentation by clicking on **Docs -> Agent Documentation** in the upper right-hand corner of the Mythic
 interface.
 
