@@ -8,7 +8,8 @@ import (
 	"os/user"
 	"runtime"
 	"unicode/utf16"
-	"syscall"
+	"bufio"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -29,12 +30,21 @@ func getProcessName() string {
 	}
 }
 func getDomain() string {
-	const format = windows.ComputerNameDnsDomain
-	n := uint32(64)
-	b := make([]uint16, n)
-	err := windows.GetComputerNameEx(format, &b[0], &n)
-	if err == nil {
-		return syscall.UTF16ToString(b[:n])
+	fp, err := os.Open("/etc/krb5.conf")
+	if err != nil {
+		// /etc/krb5.conf doesn't exist, try some other way to get domain information
+	} else {
+		defer fp.Close()
+		scanner := bufio.NewScanner(fp)
+		for scanner.Scan() {
+			text := scanner.Text()
+			if strings.Contains(text, "default_realm") {
+				pieces := strings.Split(text, "=")
+				if len(pieces) > 1 {
+					return pieces[1]
+				}
+			}
+		}
 	}
 	return ""
 }
