@@ -2,7 +2,7 @@ package main
 
 import (
 	freyjafunctions "MyContainer/freyja/agentfunctions"
-	poseidontcpfunctions "MyContainer/freyja_tcp/c2functions"
+	freyjatcpfunctions "MyContainer/freyja_tcp/c2functions"
 	"github.com/MythicMeta/MythicContainer"
 )
 
