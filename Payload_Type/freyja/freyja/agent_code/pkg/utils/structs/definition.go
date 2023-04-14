@@ -35,18 +35,18 @@ type HeaderStruct struct {
 
 // Struct definition for CheckIn messages
 type CheckInMessage struct {
-	Action         string `json:"action"`
-	IP             string `json:"ip"`
-	OS             string `json:"os"`
-	User           string `json:"user"`
-	Host           string `json:"host"`
-	Pid            int    `json:"pid"`
-	UUID           string `json:"uuid"`
-	Architecture   string `json:"architecture"`
-	Domain         string `json:"domain"`
-	IntegrityLevel int    `json:"integrity_level"`
-	ExternalIP     string `json:"external_ip"`
-	ProcessName    string `json:"process_name"`
+	Action         string   `json:"action"`
+	IPs            []string `json:"ips"`
+	OS             string   `json:"os"`
+	User           string   `json:"user"`
+	Host           string   `json:"host"`
+	Pid            int      `json:"pid"`
+	UUID           string   `json:"uuid"`
+	Architecture   string   `json:"architecture"`
+	Domain         string   `json:"domain"`
+	IntegrityLevel int      `json:"integrity_level"`
+	ExternalIP     string   `json:"external_ip"`
+	ProcessName    string   `json:"process_name"`
 }
 
 type CheckInMessageResponse struct {
@@ -164,19 +164,25 @@ type Keylog struct {
 	WindowTitle string `json:"window_title"`
 	Keystrokes  string `json:"keystrokes"`
 }
+type Artifact struct {
+	BaseArtifact string `json:"base_artifact"`
+	Artifact     string `json:"artifact"`
+}
 
 type Response struct {
-	TaskID       string               `json:"task_id"`
-	UserOutput   string               `json:"user_output,omitempty"`
-	Completed    bool                 `json:"completed,omitempty"`
-	Status       string               `json:"status,omitempty"`
-	FileBrowser  *FileBrowser         `json:"file_browser,omitempty"`
-	RemovedFiles *[]RmFiles           `json:"removed_files,omitempty"`
-	Processes    *[]ProcessDetails    `json:"processes,omitempty"`
-	TrackingUUID string               `json:"tracking_uuid,omitempty"`
-	Upload       *FileUploadMessage   `json:"upload,omitempty"`
-	Download     *FileDownloadMessage `json:"download,omitempty"`
-	Keylogs      *[]Keylog            `json:"keylogs,omitempty"`
+	TaskID          string               `json:"task_id"`
+	UserOutput      string               `json:"user_output,omitempty"`
+	Completed       bool                 `json:"completed,omitempty"`
+	Status          string               `json:"status,omitempty"`
+	FileBrowser     *FileBrowser         `json:"file_browser,omitempty"`
+	RemovedFiles    *[]RmFiles           `json:"removed_files,omitempty"`
+	Processes       *[]ProcessDetails    `json:"processes,omitempty"`
+	TrackingUUID    string               `json:"tracking_uuid,omitempty"`
+	Upload          *FileUploadMessage   `json:"upload,omitempty"`
+	Download        *FileDownloadMessage `json:"download,omitempty"`
+	Keylogs         *[]Keylog            `json:"keylogs,omitempty"`
+	Artifacts       *[]Artifact          `json:"artifacts,omitempty"`
+	ProcessResponse *string              `json:"process_response,omitempty"`
 }
 
 func (r *Response) SetError(errString string) {
@@ -269,12 +275,12 @@ type FileBrowserArguments struct {
 
 // Struct for dealing with Socks messages
 type SocksMsg struct {
-	ServerId int32  `json:"server_id"`
+	ServerId uint32 `json:"server_id"`
 	Data     string `json:"data"`
 	Exit     bool   `json:"exit"`
 }
 
-//Message - struct definition for external C2 messages
+// Message - struct definition for external C2 messages
 type Message struct {
 	Tag    string `json:"tag"`
 	Client bool   `json:"client"`
@@ -297,7 +303,7 @@ func (t *Task) ShouldStop() bool {
 		msg.TaskID = t.TaskID
 		msg.UserOutput = "\nTask Cancelled"
 		msg.Completed = true
-		msg.Status = "error"
+		msg.Status = "Err: User Cancelled"
 		t.Job.SendResponses <- msg
 		return true
 	} else {
