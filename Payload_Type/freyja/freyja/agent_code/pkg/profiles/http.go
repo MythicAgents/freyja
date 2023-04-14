@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	// Poseidon
-	"github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/utils/crypto"
-	"github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/utils/structs"
+	// Freyja
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/crypto"
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
 // HTTP C2 profile variables from https://github.com/MythicC2Profiles/http/blob/master/C2_Profiles/http/mythic/c2_functions/HTTP.py
