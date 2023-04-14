@@ -5,9 +5,8 @@
 </p>
 
 Freyja is a Golang, Purple Team agent that compiles into Windows, Linux and macOS x64 executables.  It is a very stripped down verion of the [Poseidon](https://github.com/MythicAgents/poseidon) payload from [@xorrior](https://github.com/xorrior), [@djhohnstein](https://github.com/djhohnstein), and [@its-a-feature](https://github.com/its-a-feature)
-It leverages the [karalabe/xgo](https://github.com/karalabe/xgo) project to cross compile with CGO for both of these
-operating systems. This Freyja instance supports Mythic 2.3 and will be updated as necessary.
-It does not support Mythic 2.2 and lower.
+This Freyja instance supports Mythic 3.0 and will be updated as necessary.
+It does not support Mythic 2.3 and lower.
 
 The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
 
@@ -30,9 +29,9 @@ When it's time for you to test out your install or for another user to install y
 
 Now, you might be wondering _when_ should you or a user do this to properly add your agent to their Mythic instance. There's no wrong answer here, just depends on your preference. The three options are:
 
-* Mythic is already up and going, then you can run the install script and just direct that agent's containers to start (i.e. `sudo ./mythic-cli payload start agentName` and if that agent has its own special C2 containers, you'll need to start them too via `sudo ./mythic-cli c2 start c2profileName`).
-* Mythic is already up and going, but you want to minimize your steps, you can just install the agent and run `sudo ./mythic-cli mythic start`. That script will first _stop_ all of your containers, then start everything back up again. This will also bring in the new agent you just installed.
-* Mythic isn't running, you can install the script and just run `sudo ./mythic-cli mythic start`.
+* Mythic is already up and going, then you can run the install script and just direct that agent's containers to start (i.e. `sudo ./mythic-cli start agentName` and if that agent has its own special C2 containers, you'll need to start them too via `sudo ./mythic-cli start c2profileName`).
+* Mythic is already up and going, but you want to minimize your steps, you can just install the agent and run `sudo ./mythic-cli start`. That script will first _stop_ all of your containers, then start everything back up again. This will also bring in the new agent you just installed.
+* Mythic isn't running, you can install the script and just run `sudo ./mythic-cli start`.
 
 ## Documentation
 

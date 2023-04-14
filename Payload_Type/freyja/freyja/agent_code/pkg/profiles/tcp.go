@@ -97,13 +97,13 @@ func (c *C2Default) handleClientConnection(conn net.Conn) {
 	c.EgressTCPConnections[connectionUUID] = conn
 	go c.handleEgressConnectionIncomingMessage(conn)
 	if c.FinishedStaging {
-		//fmt.Printf("FinishedStaging, Got a new connection, sending checkin\n")
+		fmt.Printf("FinishedStaging, Got a new connection, sending checkin\n")
 		go c.CheckIn()
 	} else if c.ExchangingKeys {
-		//fmt.Printf("ExchangingKeys, starting EKE\n")
+		fmt.Printf("ExchangingKeys, starting EKE\n")
 		go c.NegotiateKey()
 	} else {
-		//fmt.Printf("Not finished staging, not exchaing keys, sending checkin\n")
+		fmt.Printf("Not finished staging, not exchaing keys, sending checkin\n")
 		go c.CheckIn()
 	}
 }
