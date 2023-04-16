@@ -15,7 +15,7 @@ var powershell_executor = agentstructs.Command{
 		CommandIsSuggested: true,
 		CommandIsBuiltin:   false,
 		FilterCommandAvailabilityByAgentBuildParameters: true,
-		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS}
+		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
   },
 	TaskFunctionCreateTasking: powershell_executorCreateTasking,
 	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
