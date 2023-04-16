@@ -14,7 +14,6 @@ var cmd_executor = agentstructs.Command{
   CommandAttributes: agentstructs.CommandAttribute{
 		CommandIsSuggested: true,
 		CommandIsBuiltin:   false,
-		FilterCommandAvailabilityByAgentBuildParameters: true,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
   },
 	TaskFunctionCreateTasking: cmd_executorCreateTasking,

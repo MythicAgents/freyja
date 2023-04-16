@@ -21,7 +21,6 @@ func init() {
 		CommandAttributes: agentstructs.CommandAttribute{
 			CommandIsSuggested: false,
 			CommandIsBuiltin:   false,
-			FilterCommandAvailabilityByAgentBuildParameters: true,
       SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		CommandParameters: []agentstructs.CommandParameter{

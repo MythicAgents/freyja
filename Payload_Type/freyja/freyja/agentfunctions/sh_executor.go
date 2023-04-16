@@ -14,7 +14,6 @@ var sh_executor = agentstructs.Command{
   CommandAttributes: agentstructs.CommandAttribute{
 		CommandIsSuggested: true,
 		CommandIsBuiltin:   false,
-		FilterCommandAvailabilityByAgentBuildParameters: true,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
   },
 	TaskFunctionCreateTasking: sh_executorCreateTasking,

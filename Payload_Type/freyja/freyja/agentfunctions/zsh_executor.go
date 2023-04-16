@@ -14,7 +14,6 @@ var zsh_executor = agentstructs.Command{
   CommandAttributes: agentstructs.CommandAttribute{
 		CommandIsSuggested: true,
 		CommandIsBuiltin:   false,
-		FilterCommandAvailabilityByAgentBuildParameters: true,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_MACOS},
   },
 	TaskFunctionCreateTasking: zsh_executorCreateTasking,

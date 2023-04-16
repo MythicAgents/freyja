@@ -17,7 +17,6 @@ var download = agentstructs.Command{
   CommandAttributes: agentstructs.CommandAttribute{
 			CommandIsSuggested: true,
 			CommandIsBuiltin:   false,
-			FilterCommandAvailabilityByAgentBuildParameters: true,
       SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	},
 	AssociatedBrowserScript: &agentstructs.BrowserScript{
