@@ -452,8 +452,10 @@ func main() {
 	go handleAddNewInternalTCPConnections()
 	go handleRemoveInternalTCPConnections()
 	go handleInboundMythicMessageFromEgressP2PChannel()
-	go func() {
-		log.Println(http.ListenAndServe("192.168.0.127:8080", nil))
-	}()
+  /*
+		go func() {
+			log.Println(http.ListenAndServe("192.168.0.127:8080", nil))
+		}()
+	*/
 	profile.Start()
 }
