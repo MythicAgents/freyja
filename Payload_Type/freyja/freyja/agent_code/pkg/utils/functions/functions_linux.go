@@ -8,7 +8,6 @@ import (
 	"os/user"
 	"runtime"
 	"unicode/utf16"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -29,13 +28,6 @@ func getProcessName() string {
 	}
 }
 func getDomain() string {
-	const format = windows.ComputerNameDnsDomain
-	n := uint32(64)
-	b := make([]uint16, n)
-	err := windows.GetComputerNameEx(format, &b[0], &n)
-	if err == nil {
-		return syscall.UTF16ToString(b[:n])
-	}
 	return ""
 }
 func getStringFromBytes(data [65]byte) string {
