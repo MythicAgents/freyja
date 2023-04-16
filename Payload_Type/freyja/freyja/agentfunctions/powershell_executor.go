@@ -11,12 +11,12 @@ var powershell_executor = agentstructs.Command{
   Author:                    "@antman1p",
 	Description:               "Execute a shell command using 'powershell -nologo -noprofile'",
 	MitreAttackMappings:       []string{"T1059"},
-  CommandAttributes: agentstructs.CommandAttribute{
+	CommandAttributes: agentstructs.CommandAttribute{
 		CommandIsSuggested: true,
-		CommandIsBuiltin:   false,
+		CommandIsBuiltin: false,
 		FilterCommandAvailabilityByAgentBuildParameters: true,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
-  },
+	},
 	TaskFunctionCreateTasking: powershell_executorCreateTasking,
 	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
 		return args.LoadArgsFromDictionary(input)
