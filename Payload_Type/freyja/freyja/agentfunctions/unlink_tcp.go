@@ -15,7 +15,10 @@ func init() {
 		SupportedUIFeatures: []string{},
 		Author:              "@its_a_feature_",
 		CommandAttributes: agentstructs.CommandAttribute{
-			SupportedOS: []string{},
+			CommandIsSuggested: false,
+			CommandIsBuiltin:   false,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
+      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		CommandParameters: []agentstructs.CommandParameter{
 			{

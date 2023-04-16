@@ -16,6 +16,9 @@ var download = agentstructs.Command{
 	SupportedUIFeatures: []string{"file_browser:download"},
   CommandAttributes: agentstructs.CommandAttribute{
 			CommandIsSuggested: true,
+			CommandIsBuiltin:   false,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
+      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	},
 	AssociatedBrowserScript: &agentstructs.BrowserScript{
 		ScriptPath: filepath.Join(".", "freyja", "browserscripts", "download_new.js"), // the name of the script in agent_browser_scripts

@@ -12,8 +12,10 @@ var cmd_executor = agentstructs.Command{
 	Description:               "Execute a shell command using 'cmd /C'",
 	MitreAttackMappings:       []string{"T1059"},
   CommandAttributes: agentstructs.CommandAttribute{
-      CommandIsSuggested: true,
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
+		CommandIsSuggested: true,
+		CommandIsBuiltin:   false,
+		FilterCommandAvailabilityByAgentBuildParameters: true,
+		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
   },
 	TaskFunctionCreateTasking: cmd_executorCreateTasking,
 	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {

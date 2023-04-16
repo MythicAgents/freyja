@@ -13,6 +13,8 @@ var bash_executor = agentstructs.Command{
 	MitreAttackMappings:       []string{"T1059"},
   CommandAttributes: agentstructs.CommandAttribute{
       CommandIsSuggested: true,
+			CommandIsBuiltin:   false,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
       SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
   },
 	TaskFunctionCreateTasking: bash_executorCreateTasking,

@@ -18,7 +18,10 @@ func init() {
 		MitreAttackMappings: []string{"T1572"},
 		SupportedUIFeatures: []string{},
 		CommandAttributes: agentstructs.CommandAttribute{
-			SupportedOS: []string{},
+			CommandIsSuggested: false,
+			CommandIsBuiltin:   false,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
+      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		CommandParameters: []agentstructs.CommandParameter{
 			{

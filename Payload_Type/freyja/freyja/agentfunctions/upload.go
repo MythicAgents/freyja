@@ -57,8 +57,10 @@ func init() {
 			},
 		},
 		CommandAttributes: agentstructs.CommandAttribute{
-			SupportedOS: []string{},
-      CommandIsSuggested: true,
+			CommandIsSuggested: true,
+			CommandIsBuiltin:   false,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
+      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		TaskFunctionParseArgString: func(args *agentstructs.PTTaskMessageArgsData, input string) error {
 			return args.LoadArgsFromJSONString(input)

@@ -12,8 +12,10 @@ var zsh_executor = agentstructs.Command{
 	Description:               "Execute a shell command using 'zsh -c'",
 	MitreAttackMappings:       []string{"T1059"},
   CommandAttributes: agentstructs.CommandAttribute{
-      CommandIsSuggested: true,
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
+		CommandIsSuggested: true,
+		CommandIsBuiltin:   false,
+		FilterCommandAvailabilityByAgentBuildParameters: true,
+		SupportedOS: []string{agentstructs.SUPPORTED_OS_MACOS},
   },
 	TaskFunctionCreateTasking: zsh_executorCreateTasking,
 	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {

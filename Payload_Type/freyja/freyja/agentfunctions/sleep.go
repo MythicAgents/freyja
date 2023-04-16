@@ -20,8 +20,10 @@ func init() {
 		MitreAttackMappings: []string{},
 		SupportedUIFeatures: []string{},
 		CommandAttributes: agentstructs.CommandAttribute{
-			SupportedOS: []string{},
-      CommandIsBuiltin: true,
+			CommandIsSuggested: true,
+			CommandIsBuiltin:   true,
+			FilterCommandAvailabilityByAgentBuildParameters: true,
+      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		CommandParameters: []agentstructs.CommandParameter{
 			{
