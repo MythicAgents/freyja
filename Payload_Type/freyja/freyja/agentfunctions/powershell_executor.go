@@ -12,8 +12,6 @@ var powershell_executor = agentstructs.Command{
 	Description:               "Execute a shell command using 'powershell -nologo -noprofile'",
 	MitreAttackMappings:       []string{"T1059"},
 	CommandAttributes: agentstructs.CommandAttribute{
-		CommandIsSuggested: true,
-		CommandIsBuiltin: false,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
 	},
 	TaskFunctionCreateTasking: powershell_executorCreateTasking,

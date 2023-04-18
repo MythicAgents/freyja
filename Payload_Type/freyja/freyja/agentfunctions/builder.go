@@ -19,7 +19,7 @@ var payloadDefinition = agentstructs.PayloadType{
 	SupportedOS:                            []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
-	SupportsDynamicLoading:                 true,
+	SupportsDynamicLoading:                 false,
 	Description:                            "A Cross-Platform Purple Team Campaign Agent",
 	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp"},
 	MythicEncryptsData:                     true,

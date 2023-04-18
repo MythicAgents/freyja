@@ -12,8 +12,6 @@ var cmd_executor = agentstructs.Command{
 	Description:               "Execute a shell command using 'cmd /C'",
 	MitreAttackMappings:       []string{"T1059"},
   CommandAttributes: agentstructs.CommandAttribute{
-		CommandIsSuggested: true,
-		CommandIsBuiltin:   false,
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
   },
 	TaskFunctionCreateTasking: cmd_executorCreateTasking,

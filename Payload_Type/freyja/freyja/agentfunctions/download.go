@@ -15,8 +15,6 @@ var download = agentstructs.Command{
 	MitreAttackMappings: []string{"T1020", "T1030", "T1041"},
 	SupportedUIFeatures: []string{"file_browser:download"},
   CommandAttributes: agentstructs.CommandAttribute{
-			CommandIsSuggested: true,
-			CommandIsBuiltin:   false,
       SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	},
 	AssociatedBrowserScript: &agentstructs.BrowserScript{
