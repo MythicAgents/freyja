@@ -68,7 +68,7 @@ func init() {
 				if action == "start" {
 					if socksResponse, err := mythicrpc.SendMythicRPCProxyStart(mythicrpc.MythicRPCProxyStartMessage{
 						PortType: rabbitmq.CALLBACK_PORT_TYPE_SOCKS,
-						Port:     int(port),
+						LocalPort:     int(port),
 						TaskID:   taskData.Task.ID,
 					}); err != nil {
 						logging.LogError(err, "Failed to start socks")
