@@ -1,4 +1,4 @@
-FROM itsafeaturemythic/mythic_go_base_image:latest
+FROM itsafeaturemythic/mythic_go_base:latest
 
 WORKDIR /Mythic/
 
