@@ -85,7 +85,7 @@ func init() {
 				} else {
 					if socksResponse, err := mythicrpc.SendMythicRPCProxyStop(mythicrpc.MythicRPCProxyStopMessage{
 						PortType: rabbitmq.CALLBACK_PORT_TYPE_SOCKS,
-						LocalPort:     int(port),
+						Port:     int(port),
 						TaskID:   taskData.Task.ID,
 					}); err != nil {
 						logging.LogError(err, "Failed to stop socks")
