@@ -88,7 +88,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	targetOs := "linux"
 	if payloadBuildMsg.SelectedOS == "macOS" {
 		targetOs = "darwin"
-	} else if payloadBuildMsg.SelectedOS == "windows" {
+	} else if payloadBuildMsg.SelectedOS == "Windows" {
 		targetOs = "windows"
 	}
 	// This package path is used with Go's "-X" link flag to set the value string variables in code at compile
