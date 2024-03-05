@@ -9,7 +9,7 @@ require (
 	github.com/kbinani/screenshot v0.0.0-20210326165202-b96eb3309bb0
 	github.com/tmc/scp v0.0.0-20170824174625-f7b48647feef
 	github.com/xorrior/keyctl v1.0.1-0.20210425144957-8746c535bf58
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+	golang.org/x/crypto v0.17.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.6.0
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06
