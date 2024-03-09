@@ -1,6 +1,6 @@
 module github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code
 
-go 1.19
+go 1.21
 
 require (
 	github.com/creack/pty v1.1.21
@@ -17,9 +17,12 @@ require (
 )
 
 require (
+	github.com/MythicAgents/freyja v0.0.0-20240309224810-7454af137fd9 // indirect
 	github.com/gen2brain/shm v0.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
 	golang.org/x/net v0.21.0 // indirect
 )
+
+replace github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code => ./
