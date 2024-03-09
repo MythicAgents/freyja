@@ -1,16 +1,21 @@
 package agentfunctions
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 	"github.com/MythicMeta/MythicContainer/mythicrpc"
+	"github.com/google/uuid"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
+
+const version = "2.0"
 
 var payloadDefinition = agentstructs.PayloadType{
 	Name:                                   "freyja",
@@ -20,8 +25,8 @@ var payloadDefinition = agentstructs.PayloadType{
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
-	Description:                            "A Cross-Platform Purple Team Campaign Agent",
-	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp"},
+	Description:                            fmt.Sprint("A Cross-Platform Purple Team Campaign GoLang Agent.\nVersion %s\nNeeds Mythic 3.1.0+", version"),
+	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp", "dynamichttp", "webshell"},
 	MythicEncryptsData:                     true,
 	BuildParameters: []agentstructs.BuildParameter{
 		{
@@ -54,6 +59,42 @@ var payloadDefinition = agentstructs.PayloadType{
 			DefaultValue:  false,
 			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_BOOLEAN,
 		},
+		{
+			Name:          "debug",
+			Description:   "Create a debug build with print statements for debugging.",
+			Required:      false,
+			DefaultValue:  false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_BOOLEAN,
+		},
+		{
+			Name:          "egress_order",
+			Description:   "Prioritize the order in which egress connections are made (if including multiple egress c2 profiles)",
+			Required:      false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_ARRAY,
+			DefaultValue:  []string{"http", "websocket", "dynamichttp"},
+		},
+		{
+			Name:          "egress_failover",
+			Description:   "How should egress mechanisms rotate",
+			Required:      false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_CHOOSE_ONE,
+			Choices:       []string{"round-robin"},
+			DefaultValue:  "round-robin",
+		},
+		{
+			Name:          "failover_threshold",
+			Description:   "How many failed attempts should cause a rotate of egress comms",
+			Required:      false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_NUMBER,
+			DefaultValue:  10,
+		},
+		{
+			Name:          "static",
+			Description:   "Statically compile the payload",
+			Required:      false,
+			ParameterType: agentstructs.BUILD_PARAMETER_TYPE_BOOLEAN,
+			DefaultValue:  false,
+		},
 	},
 	BuildSteps: []agentstructs.BuildStep{
 		{
@@ -62,12 +103,12 @@ var payloadDefinition = agentstructs.PayloadType{
 		},
 
 		{
-			Name:        "Compiling",
-			Description: "Compiling the golang agent (maybe with obfuscation via garble)",
+			Name:        "Garble",
+			Description: "Adding in Garble(obfuscation)",
 		},
 		{
-			Name:        "Reporting back",
-			Description: "Sending the payload back to Mythic",
+			Name:        "Compiling",
+			Description: "Compiling the golang agent",
 		},
 	},
 }
@@ -79,9 +120,9 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		UpdatedCommandList: &payloadBuildMsg.CommandList,
 	}
 
-	if len(payloadBuildMsg.C2Profiles) > 1 || len(payloadBuildMsg.C2Profiles) == 0 {
+	if len(payloadBuildMsg.C2Profiles) == 0 {
 		payloadBuildResponse.Success = false
-		payloadBuildResponse.BuildStdErr = "Failed to build - must select only one C2 Profile at a time"
+		payloadBuildResponse.BuildStdErr = "Failed to build - must select at least one C2 Profile"
 		return payloadBuildResponse
 	}
 	macOSVersion := "10.12"
@@ -91,49 +132,167 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	} else if payloadBuildMsg.SelectedOS == "Windows" {
 		targetOs = "windows"
 	}
+	egress_order, err := payloadBuildMsg.BuildParameters.GetArrayArg("egress_order")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	egress_failover, err := payloadBuildMsg.BuildParameters.GetChooseOneArg("egress_failover")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	debug, err := payloadBuildMsg.BuildParameters.GetBooleanArg("debug")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	static, err := payloadBuildMsg.BuildParameters.GetBooleanArg("static")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	failedConnectionCountThresholdString, err := payloadBuildMsg.BuildParameters.GetNumberArg("failover_threshold")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
 	// This package path is used with Go's "-X" link flag to set the value string variables in code at compile
 	// time. This is how each profile's configurable options are passed in.
 	freyja_repo_profile := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/profiles"
+    freyja_repo_utils := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils"
 
 	// Build Go link flags that are passed in at compile time through the "-ldflags=" argument
 	// https://golang.org/cmd/link/
-	ldflags := fmt.Sprintf("-s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
-	// Iterate over the C2 profile parameters and associated variable through Go's "-X" link flag
-	for key, val := range payloadBuildMsg.C2Profiles[0].Parameters {
-		// dictionary instances will be crypto components
-		if key == "AESPSK" {
-			cryptoVal := val.(map[string]interface{})
-			ldflags += fmt.Sprintf(" -X '%s.%s=%s'", freyja_repo_profile, key, cryptoVal["enc_key"])
-		} else if key == "headers" {
-			if jsonBytes, err := json.Marshal(val); err != nil {
+		ldflags := ""
+	if static {
+		ldflags += fmt.Sprintf("-extldflags=-static -s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
+	} else {
+		ldflags += fmt.Sprintf("-s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
+	}
+	ldflags += fmt.Sprintf(" -X '%s.debugString=%v'", freyja_repo_utils, debug)
+	ldflags += fmt.Sprintf(" -X '%s.egress_failover=%s'", freyja_repo_profile, egress_failover)
+	ldflags += fmt.Sprintf(" -X '%s.failedConnectionCountThresholdString=%v'", freyja_repo_profile, failedConnectionCountThresholdString)
+	if egressBytes, err := json.Marshal(egress_order); err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	} else {
+		stringBytes := string(egressBytes)
+		stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
+		ldflags += fmt.Sprintf(" -X '%s.egress_order=%s'", freyja_repo_profile, stringBytes)
+	}
 
+	// Iterate over the C2 profile parameters and associated variable through Go's "-X" link flag
+	for _, key := range payloadBuildMsg.C2Profiles[index].GetArgNames() {
+		if key == "AESPSK" {
+			//cryptoVal := val.(map[string]interface{})
+			cryptoVal, err := payloadBuildMsg.C2Profiles[index].GetCryptoArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, cryptoVal.EncKey)
+		} else if key == "headers" {
+			headers, err := payloadBuildMsg.C2Profiles[index].GetDictionaryArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			if jsonBytes, err := json.Marshal(headers); err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
 			} else {
 				stringBytes := string(jsonBytes)
 				stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
-				ldflags += fmt.Sprintf(" -X '%s.%s=%s'", freyja_repo_profile, key, stringBytes)
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, stringBytes)
 			}
+		} else if key == "raw_c2_config" {
+			agentConfigString, err := payloadBuildMsg.C2Profiles[index].GetStringArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			configData, err := mythicrpc.SendMythicRPCFileGetContent(mythicrpc.MythicRPCFileGetContentMessage{
+				AgentFileID: agentConfigString,
+			})
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			agentConfigString = strings.ReplaceAll(string(configData.Content), "\\", "\\\\")
+			agentConfigString = strings.ReplaceAll(agentConfigString, "\"", "\\\"")
+			agentConfigString = strings.ReplaceAll(agentConfigString, "\n", "")
+			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, agentConfigString)
+
 		} else {
-			ldflags += fmt.Sprintf(" -X '%s.%s=%v'", freyja_repo_profile, key, val)
+			val, err := payloadBuildMsg.C2Profiles[index].GetArg(key)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildStdErr = err.Error()
+				return payloadBuildResponse
+			}
+			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%v'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, val)
 		}
 	}
-	proxyBypass, _ := payloadBuildMsg.BuildParameters.GetBooleanArg("proxy_bypass")
-	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", freyja_repo_profile, proxyBypass)
+	proxyBypass, err := payloadBuildMsg.BuildParameters.GetBooleanArg("proxy_bypass")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	architecture, err := payloadBuildMsg.BuildParameters.GetStringArg("architecture")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	mode, err := payloadBuildMsg.BuildParameters.GetStringArg("mode")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	garble, err := payloadBuildMsg.BuildParameters.GetBooleanArg("garble")
+	if err != nil {
+		payloadBuildResponse.Success = false
+		payloadBuildResponse.BuildStdErr = err.Error()
+		return payloadBuildResponse
+	}
+	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", freyja_repo_profile, proxyBypass)	
 	ldflags += " -buildid="
 	goarch := "amd64"
-	architecture, _ := payloadBuildMsg.BuildParameters.GetStringArg("architecture")
 	if architecture == "ARM_x64" {
 		goarch = "arm64"
 	}
+	tags := []string{}
+	if static {
+		tags = []string{"osusergo", "netgo"}
+	}
+	for index, _ := range payloadBuildMsg.C2Profiles {
+		tags = append(tags, payloadBuildMsg.C2Profiles[index].Name)
+	}
 	command := fmt.Sprintf("rm -rf /deps; CGO_ENABLED=1 GOOS=%s GOARCH=%s ", targetOs, goarch)
-	mode, _ := payloadBuildMsg.BuildParameters.GetStringArg("mode")
-	goCmd := fmt.Sprintf("-tags %s -buildmode %s -ldflags \"%s\"", payloadBuildMsg.C2Profiles[0].Name, mode, ldflags)
+	goCmd := fmt.Sprintf("-tags %s -buildmode %s -ldflags \"%s\"", strings.Join(tags, ","), mode, ldflags)
 	if targetOs == "darwin" {
 		command += "CC=o64-clang CXX=o64-clang++ "
 	} else if targetOs == "windows" {
 		command += "CC=x86_64-w64-mingw32-gcc "
-	}
+	} else {
+		if goarch == "arm64" {
+			command += "CC=aarch64-linux-gnu-gcc "
+		}
 	command += "GOGARBLE=* "
-	garble, _ := payloadBuildMsg.BuildParameters.GetBooleanArg("garble")
 	if garble {
 		command += "/go/bin/garble -tiny -literals -debug -seed random build "
 	} else {
@@ -169,6 +328,21 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		StepSuccess: true,
 		StepStdout:  fmt.Sprintf("Successfully configured\n%s", command),
 	})
+	if garble {
+		mythicrpc.SendMythicRPCPayloadUpdateBuildStep(mythicrpc.MythicRPCPayloadUpdateBuildStepMessage{
+			PayloadUUID: payloadBuildMsg.PayloadUUID,
+			StepName:    "Garble",
+			StepSuccess: true,
+			StepStdout:  fmt.Sprintf("Successfully added in garble\n"),
+		})
+	} else {
+		mythicrpc.SendMythicRPCPayloadUpdateBuildStep(mythicrpc.MythicRPCPayloadUpdateBuildStepMessage{
+			PayloadUUID: payloadBuildMsg.PayloadUUID,
+			StepName:    "Garble",
+			StepSkip:    true,
+			StepStdout:  fmt.Sprintf("Skipped Garble\n"),
+		})
+	}
 	cmd := exec.Command("/bin/bash")
 	cmd.Stdin = strings.NewReader(command)
 	cmd.Dir = "./freyja/agent_code/"
@@ -206,9 +380,101 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		payloadBuildResponse.BuildStdErr = stderr.String()
 	}
 	payloadBuildResponse.BuildStdOut = stdout.String()
+
 	if payloadBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", payloadName)); err != nil {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildMessage = "Failed to find final payload"
+		} else if mode == "c-archive" && targetOs == "darwin" {
+			zipUUID := uuid.New().String()
+			archive, err := os.Create(fmt.Sprintf("/build/%s", zipUUID))
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to make temp archive on disk"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				return payloadBuildResponse
+			}
+			zipWriter := zip.NewWriter(archive)
+			fileWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.a")
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			_, err = io.Copy(fileWriter, bytes.NewReader(payloadBytes))
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to write payload to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			headerName := fmt.Sprintf("%s.h", payloadName[:len(payloadName)-2])
+			headerWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.h")
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to save header to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			headerFile, err := os.Open(fmt.Sprintf("/build/%s", headerName))
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to open header to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			_, err = io.Copy(headerWriter, headerFile)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to write header to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			sharedWriter, err := zipWriter.Create("sharedlib-darwin-linux.c")
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			sharedLib, err := os.Open("./freyja/agent_code/sharedlib/sharedlib-darwin-linux.c")
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to save sharedlib to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			_, err = io.Copy(sharedWriter, sharedLib)
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to write sharedlib to zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				archive.Close()
+				return payloadBuildResponse
+			}
+			zipWriter.Close()
+			archive.Close()
+			archiveBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", zipUUID))
+			if err != nil {
+				payloadBuildResponse.Success = false
+				payloadBuildResponse.BuildMessage = "Failed to read final zip"
+				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+				return payloadBuildResponse
+			}
+			payloadBuildResponse.Payload = &archiveBytes
+			payloadBuildResponse.Success = true
+			payloadBuildResponse.BuildMessage = "Successfully built payload!"
+			if !strings.HasSuffix(payloadBuildMsg.Filename, ".zip") {
+				updatedFilename := fmt.Sprintf("%s.zip", payloadBuildMsg.Filename)
+				payloadBuildResponse.UpdatedFilename = &updatedFilename
+			}
 	} else {
 		payloadBuildResponse.Payload = &payloadBytes
 		payloadBuildResponse.Success = true
@@ -217,6 +483,15 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 
 	//payloadBuildResponse.Status = agentstructs.PAYLOAD_BUILD_STATUS_ERROR
 	return payloadBuildResponse
+}
+
+// dummy example function for executing something on a new freyja callback
+func onNewCallback(data agentstructs.PTOnNewCallbackAllData) agentstructs.PTOnNewCallbackResponse {
+	return agentstructs.PTOnNewCallbackResponse{
+		AgentCallbackID: data.Callback.AgentCallbackID,
+		Success:         true,
+		Error:           "",
+	}
 }
 
 func Initialize() {

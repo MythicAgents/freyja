@@ -2,6 +2,7 @@ package agentfunctions
 
 import (
 	"fmt"
+
 	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 	"github.com/MythicMeta/MythicContainer/logging"
 	"github.com/MythicMeta/MythicContainer/mythicrpc"
@@ -57,7 +58,7 @@ func init() {
 			},
 		},
 		CommandAttributes: agentstructs.CommandAttribute{
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
+			SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		TaskFunctionParseArgString: func(args *agentstructs.PTTaskMessageArgsData, input string) error {
 			return args.LoadArgsFromJSONString(input)
@@ -70,7 +71,7 @@ func init() {
 				Success: true,
 				TaskID:  taskData.Task.ID,
 			}
-			if fileID, err := taskData.Args.GetStringArg("file_id"); err != nil {
+			if fileID, err := taskData.Args.GetFileArg("file_id"); err != nil {
 				logging.LogError(err, "Failed to get file_id")
 				response.Success = false
 				response.Error = err.Error()

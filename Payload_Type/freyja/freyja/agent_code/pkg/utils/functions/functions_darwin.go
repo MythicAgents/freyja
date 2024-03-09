@@ -1,4 +1,4 @@
-// +build darwin
+//go:build darwin
 
 package functions
 
@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 )
@@ -21,8 +22,8 @@ import (
 func cstring(s *C.NSString) *C.char { return C.nsstring2cstring(s) }
 func gostring(s *C.NSString) string { return C.GoString(cstring(s)) }
 func isElevated() bool {
-	currentUser, _ := user.Current()
-	return currentUser.Uid == "0"
+	uid := C.UpdateEUID()
+	return uid == 0
 }
 func getArchitecture() string {
 	return runtime.GOARCH
@@ -59,7 +60,9 @@ func getOS() string {
 	//return runtime.GOOS
 }
 func getUser() string {
-	currentUser, err := user.Current()
+	uid := C.UpdateEUID()
+	currentUser, err := user.LookupId(strconv.Itoa(int(uid)))
+	//currentUser, err := user.Current()
 	if err != nil {
 		return ""
 	} else {
@@ -94,7 +97,8 @@ func UINT32ByteCountDecimal(b uint32) string {
 }
 
 // Helper function to convert LARGE_INTEGER byte
-//  counts to human readable sizes.
+//
+//	counts to human readable sizes.
 func UINT64ByteCountDecimal(b uint64) string {
 	const unit = 1024
 	if b < unit {

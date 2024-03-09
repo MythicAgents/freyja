@@ -7,20 +7,17 @@ import (
 )
 
 var bash_executor = agentstructs.Command{
-	Name:                      "bash_executor",
-  Author:                    "@antman1p",
-	Description:               "Execute a shell command using 'bash -c'",
-	MitreAttackMappings:       []string{"T1059"},
-  CommandAttributes: agentstructs.CommandAttribute{
-      CommandIsSuggested: true,
-			CommandIsBuiltin:   false,
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
-  },
-	TaskFunctionCreateTasking: bash_executorCreateTasking,
-	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
-		return args.LoadArgsFromDictionary(input)
+	Name:                "bash_executor",
+	Author:              "@antman1p",
+	Description:         "Execute a shell command using 'bash -c'",
+	MitreAttackMappings: []string{"T1059"},
+	CommandAttributes: agentstructs.CommandAttribute{
+		CommandIsSuggested: true,
+		CommandIsBuiltin:   false,
+		SupportedOS:        []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
 	},
-	Version: 1,
+	TaskFunctionCreateTasking: bash_executorCreateTasking,
+	Version:                   1,
 }
 
 func init() {

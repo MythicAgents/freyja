@@ -7,18 +7,15 @@ import (
 )
 
 var powershell_executor = agentstructs.Command{
-	Name:                      "powershell_executor",
-  Author:                    "@antman1p",
-	Description:               "Execute a shell command using 'powershell -nologo -noprofile'",
-	MitreAttackMappings:       []string{"T1059"},
+	Name:                "powershell_executor",
+	Author:              "@antman1p",
+	Description:         "Execute a shell command using 'powershell -nologo -noprofile'",
+	MitreAttackMappings: []string{"T1059"},
 	CommandAttributes: agentstructs.CommandAttribute{
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_WINDOWS},
 	},
 	TaskFunctionCreateTasking: powershell_executorCreateTasking,
-	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
-		return args.LoadArgsFromDictionary(input)
-	},
-	Version: 1,
+	Version:                   1,
 }
 
 func init() {

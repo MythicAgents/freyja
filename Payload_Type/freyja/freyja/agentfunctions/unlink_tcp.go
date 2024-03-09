@@ -2,6 +2,7 @@ package agentfunctions
 
 import (
 	"fmt"
+
 	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 )
 
@@ -15,16 +16,34 @@ func init() {
 		SupportedUIFeatures: []string{},
 		Author:              "@its_a_feature_",
 		CommandAttributes: agentstructs.CommandAttribute{
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
+			SupportedOS: []string{},
 		},
 		CommandParameters: []agentstructs.CommandParameter{
 			{
 				Name:          "connection",
 				Description:   "Connection info for unlinking",
 				ParameterType: agentstructs.COMMAND_PARAMETER_TYPE_LINK_INFO,
+				ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
+					{
+						GroupName:           "Modal Selection",
+						ParameterIsRequired: true,
+					},
+				},
+			},
+			{
+				Name:          "connectionUUID",
+				Description:   "Existing UUID within Freyja to unlink",
+				ParameterType: agentstructs.COMMAND_PARAMETER_TYPE_STRING,
+				ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
+					{
+						GroupName:           "Explicit UUID",
+						ParameterIsRequired: true,
+					},
+				},
 			},
 		},
 		TaskFunctionParseArgString: func(args *agentstructs.PTTaskMessageArgsData, input string) error {
+			args.SetArgValue("connectionUUID", input)
 			return nil
 		},
 		TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
@@ -35,22 +54,58 @@ func init() {
 				Success: true,
 				TaskID:  taskData.Task.ID,
 			}
-			if connectionInfo, err := taskData.Args.GetDictionaryArg("connection"); err != nil {
+			groupName, err := taskData.Args.GetParameterGroupName()
+			if err != nil {
 				response.Success = false
 				response.Error = err.Error()
-			} else if callbackUUID, ok := connectionInfo["callback_uuid"]; !ok {
-				response.Success = false
-				response.Error = "Failed to find callback UUID in connection information"
-			} else {
-				taskData.Args.RemoveArg("connection")
-				taskData.Args.AddArg(agentstructs.CommandParameter{
-					Name:          "connection",
-					DefaultValue:  callbackUUID,
-					ParameterType: agentstructs.COMMAND_PARAMETER_TYPE_STRING,
-				})
-				displayString := fmt.Sprintf("from %s", callbackUUID)
-				response.DisplayParams = &displayString
+				return response
 			}
+			if groupName == "Explicit UUID" {
+				connectionString, err := taskData.Args.GetStringArg("connectionUUID")
+				if err != nil {
+					response.Success = false
+					response.Error = err.Error()
+					return response
+				} else {
+					taskData.Args.RemoveArg("connectionUUID")
+					taskData.Args.RemoveArg("connection")
+					taskData.Args.AddArg(agentstructs.CommandParameter{
+						Name:          "connection",
+						DefaultValue:  connectionString,
+						ParameterType: agentstructs.COMMAND_PARAMETER_TYPE_STRING,
+						ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
+							{
+								GroupName: "Explicit UUID",
+							},
+						},
+					})
+					displayString := fmt.Sprintf("from %s", connectionString)
+					response.DisplayParams = &displayString
+				}
+			} else {
+				if connectionInfo, err := taskData.Args.GetLinkInfoArg("connection"); err != nil {
+					response.Success = false
+					response.Error = err.Error()
+				} else if connectionInfo.CallbackUUID == "" {
+					response.Success = false
+					response.Error = "Failed to find callback UUID in connection information"
+				} else {
+					taskData.Args.RemoveArg("connection")
+					taskData.Args.AddArg(agentstructs.CommandParameter{
+						Name:          "connection",
+						DefaultValue:  connectionInfo.CallbackUUID,
+						ParameterType: agentstructs.COMMAND_PARAMETER_TYPE_STRING,
+						ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
+							{
+								GroupName: "Modal Selection",
+							},
+						},
+					})
+					displayString := fmt.Sprintf("from %s", connectionInfo.CallbackUUID)
+					response.DisplayParams = &displayString
+				}
+			}
+
 			return response
 		},
 	})
