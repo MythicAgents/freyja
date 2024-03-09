@@ -25,7 +25,7 @@ var payloadDefinition = agentstructs.PayloadType{
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
-	Description:                            fmt.Sprint("A Cross-Platform Purple Team Campaign GoLang Agent.\nVersion %s\nNeeds Mythic 3.1.0+", version"),
+	Description:                            fmt.Sprintf("A Cross-Platform Purple Team Campaign GoLang Agent.\nVersion %s\nNeeds Mythic 3.1.0+", version"),
 	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp", "dynamichttp", "webshell"},
 	MythicEncryptsData:                     true,
 	BuildParameters: []agentstructs.BuildParameter{
