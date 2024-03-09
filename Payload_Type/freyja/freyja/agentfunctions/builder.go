@@ -5,28 +5,29 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
-	"github.com/MythicMeta/MythicContainer/mythicrpc"
-	"github.com/google/uuid"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
+	"github.com/MythicMeta/MythicContainer/mythicrpc"
+	"github.com/google/uuid"
 )
 
-const version = "2.0"
+const version = "2.0.27"
 
 var payloadDefinition = agentstructs.PayloadType{
-	Name:                                   "freyja",
+	Name:                                   "poseidon",
 	FileExtension:                          "bin",
-	Author:                                 "@antman, @xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
+	Author:                                 "@xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
 	SupportedOS:                            []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
 	Description:                            fmt.Sprintf("A Cross-Platform Purple Team Campaign GoLang Agent.\nVersion %s\nNeeds Mythic 3.1.0+", version),
-	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp", "dynamichttp", "webshell"},
+	SupportedC2Profiles:                    []string{"http", "websocket", "poseidon_tcp", "dynamichttp", "webshell"},
 	MythicEncryptsData:                     true,
 	BuildParameters: []agentstructs.BuildParameter{
 		{
@@ -101,10 +102,9 @@ var payloadDefinition = agentstructs.PayloadType{
 			Name:        "Configuring",
 			Description: "Cleaning up configuration values and generating the golang build command",
 		},
-
 		{
 			Name:        "Garble",
-			Description: "Adding in Garble(obfuscation)",
+			Description: "Adding in Garble (obfuscation)",
 		},
 		{
 			Name:        "Compiling",
@@ -119,7 +119,6 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		Success:            true,
 		UpdatedCommandList: &payloadBuildMsg.CommandList,
 	}
-
 	if len(payloadBuildMsg.C2Profiles) == 0 {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildStdErr = "Failed to build - must select at least one C2 Profile"
@@ -164,20 +163,20 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	}
 	// This package path is used with Go's "-X" link flag to set the value string variables in code at compile
 	// time. This is how each profile's configurable options are passed in.
-	freyja_repo_profile := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/profiles"
-    freyja_repo_utils := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils"
+	poseidon_repo_profile := "github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/profiles"
+	poseidon_repo_utils := "github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/utils"
 
 	// Build Go link flags that are passed in at compile time through the "-ldflags=" argument
 	// https://golang.org/cmd/link/
-		ldflags := ""
+	ldflags := ""
 	if static {
-		ldflags += fmt.Sprintf("-extldflags=-static -s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
+		ldflags += fmt.Sprintf("-extldflags=-static -s -w -X '%s.UUID=%s'", poseidon_repo_profile, payloadBuildMsg.PayloadUUID)
 	} else {
-		ldflags += fmt.Sprintf("-s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
+		ldflags += fmt.Sprintf("-s -w -X '%s.UUID=%s'", poseidon_repo_profile, payloadBuildMsg.PayloadUUID)
 	}
-	ldflags += fmt.Sprintf(" -X '%s.debugString=%v'", freyja_repo_utils, debug)
-	ldflags += fmt.Sprintf(" -X '%s.egress_failover=%s'", freyja_repo_profile, egress_failover)
-	ldflags += fmt.Sprintf(" -X '%s.failedConnectionCountThresholdString=%v'", freyja_repo_profile, failedConnectionCountThresholdString)
+	ldflags += fmt.Sprintf(" -X '%s.debugString=%v'", poseidon_repo_utils, debug)
+	ldflags += fmt.Sprintf(" -X '%s.egress_failover=%s'", poseidon_repo_profile, egress_failover)
+	ldflags += fmt.Sprintf(" -X '%s.failedConnectionCountThresholdString=%v'", poseidon_repo_profile, failedConnectionCountThresholdString)
 	if egressBytes, err := json.Marshal(egress_order); err != nil {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildStdErr = err.Error()
@@ -185,66 +184,69 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	} else {
 		stringBytes := string(egressBytes)
 		stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
-		ldflags += fmt.Sprintf(" -X '%s.egress_order=%s'", freyja_repo_profile, stringBytes)
+		ldflags += fmt.Sprintf(" -X '%s.egress_order=%s'", poseidon_repo_profile, stringBytes)
 	}
 
 	// Iterate over the C2 profile parameters and associated variable through Go's "-X" link flag
-	for _, key := range payloadBuildMsg.C2Profiles[index].GetArgNames() {
-		if key == "AESPSK" {
-			//cryptoVal := val.(map[string]interface{})
-			cryptoVal, err := payloadBuildMsg.C2Profiles[index].GetCryptoArg(key)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
-			}
-			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, cryptoVal.EncKey)
-		} else if key == "headers" {
-			headers, err := payloadBuildMsg.C2Profiles[index].GetDictionaryArg(key)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
-			}
-			if jsonBytes, err := json.Marshal(headers); err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
-			} else {
-				stringBytes := string(jsonBytes)
-				stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
-				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, stringBytes)
-			}
-		} else if key == "raw_c2_config" {
-			agentConfigString, err := payloadBuildMsg.C2Profiles[index].GetStringArg(key)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
-			}
-			configData, err := mythicrpc.SendMythicRPCFileGetContent(mythicrpc.MythicRPCFileGetContentMessage{
-				AgentFileID: agentConfigString,
-			})
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
-			}
-			agentConfigString = strings.ReplaceAll(string(configData.Content), "\\", "\\\\")
-			agentConfigString = strings.ReplaceAll(agentConfigString, "\"", "\\\"")
-			agentConfigString = strings.ReplaceAll(agentConfigString, "\n", "")
-			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, agentConfigString)
+	for index, _ := range payloadBuildMsg.C2Profiles {
+		for _, key := range payloadBuildMsg.C2Profiles[index].GetArgNames() {
+			if key == "AESPSK" {
+				//cryptoVal := val.(map[string]interface{})
+				cryptoVal, err := payloadBuildMsg.C2Profiles[index].GetCryptoArg(key)
+				if err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				}
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, cryptoVal.EncKey)
+			} else if key == "headers" {
+				headers, err := payloadBuildMsg.C2Profiles[index].GetDictionaryArg(key)
+				if err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				}
+				if jsonBytes, err := json.Marshal(headers); err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				} else {
+					stringBytes := string(jsonBytes)
+					stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
+					ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, stringBytes)
+				}
+			} else if key == "raw_c2_config" {
+				agentConfigString, err := payloadBuildMsg.C2Profiles[index].GetStringArg(key)
+				if err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				}
+				configData, err := mythicrpc.SendMythicRPCFileGetContent(mythicrpc.MythicRPCFileGetContentMessage{
+					AgentFileID: agentConfigString,
+				})
+				if err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				}
+				agentConfigString = strings.ReplaceAll(string(configData.Content), "\\", "\\\\")
+				agentConfigString = strings.ReplaceAll(agentConfigString, "\"", "\\\"")
+				agentConfigString = strings.ReplaceAll(agentConfigString, "\n", "")
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, agentConfigString)
 
-		} else {
-			val, err := payloadBuildMsg.C2Profiles[index].GetArg(key)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildStdErr = err.Error()
-				return payloadBuildResponse
+			} else {
+				val, err := payloadBuildMsg.C2Profiles[index].GetArg(key)
+				if err != nil {
+					payloadBuildResponse.Success = false
+					payloadBuildResponse.BuildStdErr = err.Error()
+					return payloadBuildResponse
+				}
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%v'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, val)
 			}
-			ldflags += fmt.Sprintf(" -X '%s.%s_%s=%v'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, val)
 		}
 	}
+
 	proxyBypass, err := payloadBuildMsg.BuildParameters.GetBooleanArg("proxy_bypass")
 	if err != nil {
 		payloadBuildResponse.Success = false
@@ -269,7 +271,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		payloadBuildResponse.BuildStdErr = err.Error()
 		return payloadBuildResponse
 	}
-	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", freyja_repo_profile, proxyBypass)	
+	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", poseidon_repo_profile, proxyBypass)
 	ldflags += " -buildid="
 	goarch := "amd64"
 	if architecture == "ARM_x64" {
@@ -292,6 +294,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		if goarch == "arm64" {
 			command += "CC=aarch64-linux-gnu-gcc "
 		}
+	}
 	command += "GOGARBLE=* "
 	if garble {
 		command += "/go/bin/garble -tiny -literals -debug -seed random build "
@@ -345,7 +348,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	}
 	cmd := exec.Command("/bin/bash")
 	cmd.Stdin = strings.NewReader(command)
-	cmd.Dir = "./freyja/agent_code/"
+	cmd.Dir = "./poseidon/agent_code/"
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -384,97 +387,97 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	if payloadBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", payloadName)); err != nil {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildMessage = "Failed to find final payload"
-		} else if mode == "c-archive" && targetOs == "darwin" {
-			zipUUID := uuid.New().String()
-			archive, err := os.Create(fmt.Sprintf("/build/%s", zipUUID))
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to make temp archive on disk"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				return payloadBuildResponse
-			}
-			zipWriter := zip.NewWriter(archive)
-			fileWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.a")
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			_, err = io.Copy(fileWriter, bytes.NewReader(payloadBytes))
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to write payload to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			headerName := fmt.Sprintf("%s.h", payloadName[:len(payloadName)-2])
-			headerWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.h")
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to save header to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			headerFile, err := os.Open(fmt.Sprintf("/build/%s", headerName))
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to open header to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			_, err = io.Copy(headerWriter, headerFile)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to write header to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			sharedWriter, err := zipWriter.Create("sharedlib-darwin-linux.c")
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			sharedLib, err := os.Open("./freyja/agent_code/sharedlib/sharedlib-darwin-linux.c")
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to save sharedlib to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			_, err = io.Copy(sharedWriter, sharedLib)
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to write sharedlib to zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				archive.Close()
-				return payloadBuildResponse
-			}
-			zipWriter.Close()
+	} else if mode == "c-archive" && targetOs == "darwin" {
+		zipUUID := uuid.New().String()
+		archive, err := os.Create(fmt.Sprintf("/build/%s", zipUUID))
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to make temp archive on disk"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			return payloadBuildResponse
+		}
+		zipWriter := zip.NewWriter(archive)
+		fileWriter, err := zipWriter.Create("poseidon-darwin-10.12-amd64.a")
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
 			archive.Close()
-			archiveBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", zipUUID))
-			if err != nil {
-				payloadBuildResponse.Success = false
-				payloadBuildResponse.BuildMessage = "Failed to read final zip"
-				payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
-				return payloadBuildResponse
-			}
-			payloadBuildResponse.Payload = &archiveBytes
-			payloadBuildResponse.Success = true
-			payloadBuildResponse.BuildMessage = "Successfully built payload!"
-			if !strings.HasSuffix(payloadBuildMsg.Filename, ".zip") {
-				updatedFilename := fmt.Sprintf("%s.zip", payloadBuildMsg.Filename)
-				payloadBuildResponse.UpdatedFilename = &updatedFilename
-			}
+			return payloadBuildResponse
+		}
+		_, err = io.Copy(fileWriter, bytes.NewReader(payloadBytes))
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to write payload to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		headerName := fmt.Sprintf("%s.h", payloadName[:len(payloadName)-2])
+		headerWriter, err := zipWriter.Create("poseidon-darwin-10.12-amd64.h")
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to save header to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		headerFile, err := os.Open(fmt.Sprintf("/build/%s", headerName))
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to open header to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		_, err = io.Copy(headerWriter, headerFile)
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to write header to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		sharedWriter, err := zipWriter.Create("sharedlib-darwin-linux.c")
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		sharedLib, err := os.Open("./poseidon/agent_code/sharedlib/sharedlib-darwin-linux.c")
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to save sharedlib to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		_, err = io.Copy(sharedWriter, sharedLib)
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to write sharedlib to zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			archive.Close()
+			return payloadBuildResponse
+		}
+		zipWriter.Close()
+		archive.Close()
+		archiveBytes, err := os.ReadFile(fmt.Sprintf("/build/%s", zipUUID))
+		if err != nil {
+			payloadBuildResponse.Success = false
+			payloadBuildResponse.BuildMessage = "Failed to read final zip"
+			payloadBuildResponse.BuildStdErr += fmt.Sprintf("\n%v\n", err)
+			return payloadBuildResponse
+		}
+		payloadBuildResponse.Payload = &archiveBytes
+		payloadBuildResponse.Success = true
+		payloadBuildResponse.BuildMessage = "Successfully built payload!"
+		if !strings.HasSuffix(payloadBuildMsg.Filename, ".zip") {
+			updatedFilename := fmt.Sprintf("%s.zip", payloadBuildMsg.Filename)
+			payloadBuildResponse.UpdatedFilename = &updatedFilename
+		}
 	} else {
 		payloadBuildResponse.Payload = &payloadBytes
 		payloadBuildResponse.Success = true
@@ -485,7 +488,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	return payloadBuildResponse
 }
 
-// dummy example function for executing something on a new freyja callback
+// dummy example function for executing something on a new poseidon callback
 func onNewCallback(data agentstructs.PTOnNewCallbackAllData) agentstructs.PTOnNewCallbackResponse {
 	return agentstructs.PTOnNewCallbackResponse{
 		AgentCallbackID: data.Callback.AgentCallbackID,
@@ -493,9 +496,9 @@ func onNewCallback(data agentstructs.PTOnNewCallbackAllData) agentstructs.PTOnNe
 		Error:           "",
 	}
 }
-
 func Initialize() {
-	agentstructs.AllPayloadData.Get("freyja").AddPayloadDefinition(payloadDefinition)
-	agentstructs.AllPayloadData.Get("freyja").AddBuildFunction(build)
-	agentstructs.AllPayloadData.Get("freyja").AddIcon(filepath.Join(".", "freyja", "agentfunctions", "freyja.svg"))
+	agentstructs.AllPayloadData.Get("poseidon").AddPayloadDefinition(payloadDefinition)
+	agentstructs.AllPayloadData.Get("poseidon").AddBuildFunction(build)
+	agentstructs.AllPayloadData.Get("poseidon").AddOnNewCallbackFunction(onNewCallback)
+	agentstructs.AllPayloadData.Get("poseidon").AddIcon(filepath.Join(".", "poseidon", "agentfunctions", "poseidon.svg"))
 }
