@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	// Freyja
@@ -24,8 +23,7 @@ func Run(task structs.Task) {
 		return
 	}
 
-	command := exec.Command(cmdBin, arg1)
-	command.Stdin = strings.NewReader(task.Params)
+	command := exec.Command(cmdBin, arg1, task.Params)
 	command.Env = os.Environ()
 
 	stdout, err := command.StdoutPipe()
