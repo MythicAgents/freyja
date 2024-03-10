@@ -7,18 +7,15 @@ import (
 )
 
 var sh_executor = agentstructs.Command{
-	Name:                      "sh_executor",
-  Author:                    "@antman1p",
-	Description:               "Execute a shell command using 'sh -c'",
-	MitreAttackMappings:       []string{"T1059"},
-  CommandAttributes: agentstructs.CommandAttribute{
+	Name:                "sh_executor",
+	Author:              "@antman1p",
+	Description:         "Execute a shell command using 'sh -c'",
+	MitreAttackMappings: []string{"T1059"},
+	CommandAttributes: agentstructs.CommandAttribute{
 		SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS},
-  },
-	TaskFunctionCreateTasking: sh_executorCreateTasking,
-	TaskFunctionParseArgDictionary: func(args *agentstructs.PTTaskMessageArgsData, input map[string]interface{}) error {
-		return args.LoadArgsFromDictionary(input)
 	},
-	Version: 1,
+	TaskFunctionCreateTasking: sh_executorCreateTasking,
+	Version:                   1,
 }
 
 func init() {

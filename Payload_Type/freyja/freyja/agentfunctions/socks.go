@@ -2,6 +2,7 @@ package agentfunctions
 
 import (
 	"fmt"
+
 	agentstructs "github.com/MythicMeta/MythicContainer/agent_structs"
 	"github.com/MythicMeta/MythicContainer/logging"
 	"github.com/MythicMeta/MythicContainer/mythicrpc"
@@ -18,14 +19,14 @@ func init() {
 		MitreAttackMappings: []string{"T1572"},
 		SupportedUIFeatures: []string{},
 		CommandAttributes: agentstructs.CommandAttribute{
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
+			SupportedOS: []string{},
 		},
 		CommandParameters: []agentstructs.CommandParameter{
 			{
 				Name:             "action",
 				ModalDisplayName: "Action",
 				ParameterType:    agentstructs.COMMAND_PARAMETER_TYPE_CHOOSE_ONE,
-				Choices:          []string{"start", "stop"},
+				Choices:          []string{"start", "stop", "flush"},
 				DefaultValue:     "start",
 				ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
 					{
@@ -67,9 +68,9 @@ func init() {
 				response.DisplayParams = &displayString
 				if action == "start" {
 					if socksResponse, err := mythicrpc.SendMythicRPCProxyStart(mythicrpc.MythicRPCProxyStartMessage{
-						PortType: rabbitmq.CALLBACK_PORT_TYPE_SOCKS,
-						LocalPort:     int(port),
-						TaskID:   taskData.Task.ID,
+						PortType:  rabbitmq.CALLBACK_PORT_TYPE_SOCKS,
+						LocalPort: int(port),
+						TaskID:    taskData.Task.ID,
 					}); err != nil {
 						logging.LogError(err, "Failed to start socks")
 						response.Error = err.Error()
@@ -82,7 +83,7 @@ func init() {
 					} else {
 						return response
 					}
-				} else {
+				} else if action == "stop" {
 					if socksResponse, err := mythicrpc.SendMythicRPCProxyStop(mythicrpc.MythicRPCProxyStopMessage{
 						PortType: rabbitmq.CALLBACK_PORT_TYPE_SOCKS,
 						Port:     int(port),
@@ -99,6 +100,11 @@ func init() {
 					} else {
 						return response
 					}
+				} else {
+					response.Success = true
+					output := "reset all connections and flush data"
+					response.DisplayParams = &output
+					return response
 				}
 
 			}

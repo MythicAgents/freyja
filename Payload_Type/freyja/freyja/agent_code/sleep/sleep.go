@@ -4,6 +4,8 @@ import (
 	// Standard
 	"encoding/json"
 
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/profiles"
+
 	// Freyja
 
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
@@ -14,32 +16,27 @@ type Args struct {
 	Jitter   int `json:"jitter"`
 }
 
-//Run - interface method that retrieves a process list
+// Run - interface method that retrieves a process list
 func Run(task structs.Task) {
-
 	args := Args{}
 	err := json.Unmarshal([]byte(task.Params), &args)
-
 	if err != nil {
-		errResp := structs.Response{}
-		errResp.Completed = true
-		errResp.TaskID = task.TaskID
-		errResp.Status = "error"
-		errResp.UserOutput = err.Error()
+		errResp := task.NewResponse()
+		errResp.SetError(err.Error())
 		task.Job.SendResponses <- errResp
 		return
 	}
 	output := ""
 	if args.Interval >= 0 {
-		output += task.Job.C2.SetSleepInterval(args.Interval)
+		output += profiles.UpdateAllSleepInterval(args.Interval)
 	}
 	if args.Jitter >= 0 && args.Jitter <= 100 {
-		output += task.Job.C2.SetSleepJitter(args.Jitter)
+		output += profiles.UpdateAllSleepJitter(args.Jitter)
 	}
-	resp := structs.Response{}
-	resp.UserOutput = output
-	resp.Completed = true
-	resp.TaskID = task.TaskID
-	task.Job.SendResponses <- resp
+	msg := task.NewResponse()
+	msg.UserOutput = output
+	msg.ProcessResponse = &output
+	msg.Completed = true
+	task.Job.SendResponses <- msg
 	return
 }

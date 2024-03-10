@@ -6,7 +6,7 @@ hidden = false
 +++
 
 ## Summary
-Link via `poseidon_tcp` C2 P2P Profile to another Poseidon agent.
+Link via `freyja_tcp` C2 P2P Profile to another Freyja agent.
 
 - Needs Admin: False  
 - Version: 1  
@@ -29,4 +29,4 @@ unlink_tcp
 
 ## Detailed Summary
 
-Disconnect from an agent that's connected via `poseidon_tcp` and the `link_tcp` command.
+Disconnect from an agent that's connected via `freyja_tcp` and the `link_tcp` command.
