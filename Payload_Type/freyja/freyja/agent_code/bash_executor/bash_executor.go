@@ -17,7 +17,7 @@ import (
 func Run(task structs.Task) {
 	msg := task.NewResponse()
 	bashBin := "/bin/bash"
-	if _, err := os.Stat(zshBin); err != nil {
+	if _, err := os.Stat(bashBin); err != nil {
 		msg.SetError("Could not find /bin/bash")
 		task.Job.SendResponses <- msg
 		return

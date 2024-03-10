@@ -24,7 +24,7 @@ func Run(task structs.Task) {
 		return
 	}
 
-	command := exec.Command(cmdBin, arg1, arg2)
+	command := exec.Command(cmdBin, arg1)
 	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
