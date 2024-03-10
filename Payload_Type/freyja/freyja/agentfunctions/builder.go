@@ -21,7 +21,7 @@ const version = "2.0"
 var payloadDefinition = agentstructs.PayloadType{
 	Name:                                   "freyja",
 	FileExtension:                          "bin",
-	Author:                                 "@natman1p, @xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
+	Author:                                 "@antman1p, @xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
 	SupportedOS:                            []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
