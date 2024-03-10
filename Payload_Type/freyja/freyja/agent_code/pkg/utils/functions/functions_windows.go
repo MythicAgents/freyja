@@ -1,4 +1,5 @@
-// +build windows
+//go:build windows
+
 package functions
 
 import (
@@ -6,9 +7,10 @@ import (
 	"os"
 	"os/user"
 	"runtime"
-	"unicode/utf16"
-	"syscall"
 	"strconv"
+	"syscall"
+	"unicode/utf16"
+
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
@@ -60,7 +62,7 @@ func getOS() string {
 	if err != nil {
 		cv = ""
 	}
-	pn , _, err := k.GetStringValue("ProductName")
+	pn, _, err := k.GetStringValue("ProductName")
 	if err != nil {
 		pn = ""
 	}
@@ -78,10 +80,10 @@ func getOS() string {
 	}
 
 	return string(pn) + "\n" +
-	getHostname() + "\n" +
-	cv + "\n" +
-	pn + " " + strconv.Itoa(int(maj)) + "." + strconv.Itoa(int(min)) + "." + cb + " " + getArchitecture() + "\n" +
-	getArchitecture()
+		getHostname() + "\n" +
+		cv + "\n" +
+		pn + " " + strconv.Itoa(int(maj)) + "." + strconv.Itoa(int(min)) + "." + cb + " " + getArchitecture() + "\n" +
+		getArchitecture()
 }
 func getUser() string {
 	currentUser, err := user.Current()
@@ -119,7 +121,8 @@ func UINT32ByteCountDecimal(b uint32) string {
 }
 
 // Helper function to convert LARGE_INTEGER byte
-//  counts to human readable sizes.
+//
+//	counts to human readable sizes.
 func UINT64ByteCountDecimal(b uint64) string {
 	const unit = 1024
 	if b < unit {

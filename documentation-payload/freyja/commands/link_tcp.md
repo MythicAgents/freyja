@@ -6,7 +6,7 @@ hidden = false
 +++
 
 ## Summary
-Link via `poseidon_tcp` C2 P2P Profile to another Poseidon agent.
+Link via `freyja_tcp` C2 P2P Profile to another Freyja agent.
 
 - Needs Admin: False  
 - Version: 1  

@@ -1,8 +1,8 @@
 BINARY_NAME?=main
-DEBUG_LEVEL?="development"
-RABBITMQ_HOST?="192.168.53.153"
+DEBUG_LEVEL?="debug"
+RABBITMQ_HOST?="127.0.0.1"
 RABBITMQ_PASSWORD?="PqR9XJ957sfHqcxj6FsBMj4p"
-MYTHIC_SERVER_HOST?="192.168.53.153"
+MYTHIC_SERVER_HOST?="127.0.0.1"
 MYTHIC_SERVER_GRPC_PORT?="17444"
 WEBHOOK_DEFAULT_URL?=
 WEBHOOK_DEFAULT_CHANNEL?=
@@ -11,17 +11,21 @@ WEBHOOK_DEFAULT_CALLBACK_CHANNEL?=
 WEBHOOK_DEFAULT_STARTUP_CHANNEL?=
 
 build:
-	go mod download
+	go mod download 
 	go mod tidy
-	GOOS=linux go build -o ${BINARY_NAME} .
+	go build -o ${BINARY_NAME} .
 	cp ${BINARY_NAME} /
+	cd ./freyja/agent_code && go mod download && go mod tidy && cd ../..
+
 
 run:
 	cp /${BINARY_NAME} .
 	./${BINARY_NAME}
 
-
 run_custom:
+	go mod download
+	go mod tidy
+	go build -o ${BINARY_NAME} .
 	DEBUG_LEVEL=${DEBUG_LEVEL} \
 RABBITMQ_HOST=${RABBITMQ_HOST} \
 RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD} \

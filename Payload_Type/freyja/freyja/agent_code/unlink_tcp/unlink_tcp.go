@@ -14,10 +14,9 @@ type Arguments struct {
 	RemoteUUID string `json:"connection"`
 }
 
-//Run - package function to run unlink_tcp
+// Run - package function to run unlink_tcp
 func Run(task structs.Task) {
-	msg := structs.Response{}
-	msg.TaskID = task.TaskID
+	msg := task.NewResponse()
 	args := &Arguments{}
 	err := json.Unmarshal([]byte(task.Params), args)
 	if err != nil {
@@ -28,8 +27,10 @@ func Run(task structs.Task) {
 		return
 	}
 
-	task.Job.RemoveInternalTCPConnectionChannel <- args.RemoteUUID
-
+	task.Job.RemoveInternalConnectionChannel <- structs.RemoveInternalConnectionMessage{
+		ConnectionUUID: args.RemoteUUID,
+		C2ProfileName:  "poseidon_tcp",
+	}
 	msg.UserOutput = "Tasked to disconnect"
 	msg.Completed = true
 	msg.Status = "completed"
