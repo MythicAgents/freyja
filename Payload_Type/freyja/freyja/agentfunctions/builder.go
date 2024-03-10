@@ -16,18 +16,18 @@ import (
 	"github.com/google/uuid"
 )
 
-const version = "2.0.27"
+const version = "2.0"
 
 var payloadDefinition = agentstructs.PayloadType{
-	Name:                                   "poseidon",
+	Name:                                   "freyja",
 	FileExtension:                          "bin",
-	Author:                                 "@xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
+	Author:                                 "@natman1p, @xorrior, @djhohnstein, @Ne0nd0g, @its_a_feature_",
 	SupportedOS:                            []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 	Wrapper:                                false,
 	CanBeWrappedByTheFollowingPayloadTypes: []string{},
 	SupportsDynamicLoading:                 false,
 	Description:                            fmt.Sprintf("A Cross-Platform Purple Team Campaign GoLang Agent.\nVersion %s\nNeeds Mythic 3.1.0+", version),
-	SupportedC2Profiles:                    []string{"http", "websocket", "poseidon_tcp", "dynamichttp", "webshell"},
+	SupportedC2Profiles:                    []string{"http", "websocket", "freyja_tcp", "dynamichttp", "webshell"},
 	MythicEncryptsData:                     true,
 	BuildParameters: []agentstructs.BuildParameter{
 		{
@@ -163,20 +163,20 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	}
 	// This package path is used with Go's "-X" link flag to set the value string variables in code at compile
 	// time. This is how each profile's configurable options are passed in.
-	poseidon_repo_profile := "github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/profiles"
-	poseidon_repo_utils := "github.com/MythicAgents/poseidon/Payload_Type/poseidon/agent_code/pkg/utils"
+	freyja_repo_profile := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/profiles"
+	freyja_repo_utils := "github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils"
 
 	// Build Go link flags that are passed in at compile time through the "-ldflags=" argument
 	// https://golang.org/cmd/link/
 	ldflags := ""
 	if static {
-		ldflags += fmt.Sprintf("-extldflags=-static -s -w -X '%s.UUID=%s'", poseidon_repo_profile, payloadBuildMsg.PayloadUUID)
+		ldflags += fmt.Sprintf("-extldflags=-static -s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
 	} else {
-		ldflags += fmt.Sprintf("-s -w -X '%s.UUID=%s'", poseidon_repo_profile, payloadBuildMsg.PayloadUUID)
+		ldflags += fmt.Sprintf("-s -w -X '%s.UUID=%s'", freyja_repo_profile, payloadBuildMsg.PayloadUUID)
 	}
-	ldflags += fmt.Sprintf(" -X '%s.debugString=%v'", poseidon_repo_utils, debug)
-	ldflags += fmt.Sprintf(" -X '%s.egress_failover=%s'", poseidon_repo_profile, egress_failover)
-	ldflags += fmt.Sprintf(" -X '%s.failedConnectionCountThresholdString=%v'", poseidon_repo_profile, failedConnectionCountThresholdString)
+	ldflags += fmt.Sprintf(" -X '%s.debugString=%v'", freyja_repo_utils, debug)
+	ldflags += fmt.Sprintf(" -X '%s.egress_failover=%s'", freyja_repo_profile, egress_failover)
+	ldflags += fmt.Sprintf(" -X '%s.failedConnectionCountThresholdString=%v'", freyja_repo_profile, failedConnectionCountThresholdString)
 	if egressBytes, err := json.Marshal(egress_order); err != nil {
 		payloadBuildResponse.Success = false
 		payloadBuildResponse.BuildStdErr = err.Error()
@@ -184,7 +184,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	} else {
 		stringBytes := string(egressBytes)
 		stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
-		ldflags += fmt.Sprintf(" -X '%s.egress_order=%s'", poseidon_repo_profile, stringBytes)
+		ldflags += fmt.Sprintf(" -X '%s.egress_order=%s'", freyja_repo_profile, stringBytes)
 	}
 
 	// Iterate over the C2 profile parameters and associated variable through Go's "-X" link flag
@@ -198,7 +198,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 					payloadBuildResponse.BuildStdErr = err.Error()
 					return payloadBuildResponse
 				}
-				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, cryptoVal.EncKey)
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, cryptoVal.EncKey)
 			} else if key == "headers" {
 				headers, err := payloadBuildMsg.C2Profiles[index].GetDictionaryArg(key)
 				if err != nil {
@@ -213,7 +213,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 				} else {
 					stringBytes := string(jsonBytes)
 					stringBytes = strings.ReplaceAll(stringBytes, "\"", "\\\"")
-					ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, stringBytes)
+					ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, stringBytes)
 				}
 			} else if key == "raw_c2_config" {
 				agentConfigString, err := payloadBuildMsg.C2Profiles[index].GetStringArg(key)
@@ -233,7 +233,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 				agentConfigString = strings.ReplaceAll(string(configData.Content), "\\", "\\\\")
 				agentConfigString = strings.ReplaceAll(agentConfigString, "\"", "\\\"")
 				agentConfigString = strings.ReplaceAll(agentConfigString, "\n", "")
-				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, agentConfigString)
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%s'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, agentConfigString)
 
 			} else {
 				val, err := payloadBuildMsg.C2Profiles[index].GetArg(key)
@@ -242,7 +242,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 					payloadBuildResponse.BuildStdErr = err.Error()
 					return payloadBuildResponse
 				}
-				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%v'", poseidon_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, val)
+				ldflags += fmt.Sprintf(" -X '%s.%s_%s=%v'", freyja_repo_profile, payloadBuildMsg.C2Profiles[index].Name, key, val)
 			}
 		}
 	}
@@ -271,7 +271,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 		payloadBuildResponse.BuildStdErr = err.Error()
 		return payloadBuildResponse
 	}
-	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", poseidon_repo_profile, proxyBypass)
+	ldflags += fmt.Sprintf(" -X '%s.proxy_bypass=%v'", freyja_repo_profile, proxyBypass)
 	ldflags += " -buildid="
 	goarch := "amd64"
 	if architecture == "ARM_x64" {
@@ -348,7 +348,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	}
 	cmd := exec.Command("/bin/bash")
 	cmd.Stdin = strings.NewReader(command)
-	cmd.Dir = "./poseidon/agent_code/"
+	cmd.Dir = "./freyja/agent_code/"
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -397,7 +397,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 			return payloadBuildResponse
 		}
 		zipWriter := zip.NewWriter(archive)
-		fileWriter, err := zipWriter.Create("poseidon-darwin-10.12-amd64.a")
+		fileWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.a")
 		if err != nil {
 			payloadBuildResponse.Success = false
 			payloadBuildResponse.BuildMessage = "Failed to save payload to zip"
@@ -414,7 +414,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 			return payloadBuildResponse
 		}
 		headerName := fmt.Sprintf("%s.h", payloadName[:len(payloadName)-2])
-		headerWriter, err := zipWriter.Create("poseidon-darwin-10.12-amd64.h")
+		headerWriter, err := zipWriter.Create("freyja-darwin-10.12-amd64.h")
 		if err != nil {
 			payloadBuildResponse.Success = false
 			payloadBuildResponse.BuildMessage = "Failed to save header to zip"
@@ -446,7 +446,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 			archive.Close()
 			return payloadBuildResponse
 		}
-		sharedLib, err := os.Open("./poseidon/agent_code/sharedlib/sharedlib-darwin-linux.c")
+		sharedLib, err := os.Open("./freyja/agent_code/sharedlib/sharedlib-darwin-linux.c")
 		if err != nil {
 			payloadBuildResponse.Success = false
 			payloadBuildResponse.BuildMessage = "Failed to save sharedlib to zip"
@@ -488,7 +488,7 @@ func build(payloadBuildMsg agentstructs.PayloadBuildMessage) agentstructs.Payloa
 	return payloadBuildResponse
 }
 
-// dummy example function for executing something on a new poseidon callback
+// dummy example function for executing something on a new freyja callback
 func onNewCallback(data agentstructs.PTOnNewCallbackAllData) agentstructs.PTOnNewCallbackResponse {
 	return agentstructs.PTOnNewCallbackResponse{
 		AgentCallbackID: data.Callback.AgentCallbackID,
@@ -497,8 +497,8 @@ func onNewCallback(data agentstructs.PTOnNewCallbackAllData) agentstructs.PTOnNe
 	}
 }
 func Initialize() {
-	agentstructs.AllPayloadData.Get("poseidon").AddPayloadDefinition(payloadDefinition)
-	agentstructs.AllPayloadData.Get("poseidon").AddBuildFunction(build)
-	agentstructs.AllPayloadData.Get("poseidon").AddOnNewCallbackFunction(onNewCallback)
-	agentstructs.AllPayloadData.Get("poseidon").AddIcon(filepath.Join(".", "poseidon", "agentfunctions", "poseidon.svg"))
+	agentstructs.AllPayloadData.Get("freyja").AddPayloadDefinition(payloadDefinition)
+	agentstructs.AllPayloadData.Get("freyja").AddBuildFunction(build)
+	agentstructs.AllPayloadData.Get("freyja").AddOnNewCallbackFunction(onNewCallback)
+	agentstructs.AllPayloadData.Get("freyja").AddIcon(filepath.Join(".", "freyja", "agentfunctions", "freyja.svg"))
 }
