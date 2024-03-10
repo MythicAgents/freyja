@@ -23,6 +23,9 @@ func Run(task structs.Task) {
 		return
 	}
 
+	// command := exec.Command(cmdBin, arg1, task.Params)
+	// directly passes task.Params as part of the command arguments,
+	// which is necessary for cmd.exe to recognize and execute the command.
 	command := exec.Command(cmdBin, arg1, task.Params)
 	command.Env = os.Environ()
 
