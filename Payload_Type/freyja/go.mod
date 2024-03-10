@@ -1,6 +1,6 @@
 module MyContainer
 
-go 1.21
+go 1.19
 
 //replace github.com/MythicMeta/MythicContainer => ../../../../MythicMeta/MythicContainer
 

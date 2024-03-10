@@ -1,6 +1,6 @@
 module github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code
 
-go 1.21
+go 1.19
 
 require (
 	github.com/google/uuid v1.6.0
