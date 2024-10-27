@@ -2,6 +2,7 @@ package powershell_executor
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,19 +14,16 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
+var pwrshellBin = "powershell"
+
 // Run - Function that executes the powershell_executor command
 func Run(task structs.Task) {
 	msg := task.NewResponse()
-	pwrshellBin := "powershell"
 	arg1 := "-nologo"
 	arg2 := "-noprofile"
-	if _, err := exec.LookPath(pwrshellBin); err != nil {
-		msg.SetError("Could not find powershell.exe ")
-		task.Job.SendResponses <- msg
-		return
-	}
 
 	command := exec.Command(pwrshellBin, arg1, arg2)
+
 	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
@@ -117,5 +115,26 @@ func Run(task structs.Task) {
 		task.Job.SendResponses <- msg
 		return
 	}
+	return
+}
+
+type Arguments struct {
+	Powershell_executor string `json:"pwrshellBin"`
+}
+
+func RunConfig(task structs.Task) {
+	msg := task.NewResponse()
+	args := Arguments{}
+	err := json.Unmarshal([]byte(task.Params), &args)
+	if err != nil {
+		msg.SetError(err.Error())
+		task.Job.SendResponses <- msg
+		return
+	}
+	pwrshellBin = args.Powershell_executor
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Powershell_executor updated")
+
+	task.Job.SendResponses <- msg
 	return
 }

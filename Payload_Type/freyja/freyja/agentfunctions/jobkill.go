@@ -11,10 +11,10 @@ func init() {
 		HelpString:          "jobkill SOME-GUID-GOES-HERE",
 		Version:             1,
 		MitreAttackMappings: []string{"T1033"},
-		SupportedUIFeatures: []string{},
+		SupportedUIFeatures: []string{"jobs:kill"},
 		Author:              "@xorrior",
 		CommandAttributes: agentstructs.CommandAttribute{
-      SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
+			SupportedOS: []string{agentstructs.SUPPORTED_OS_LINUX, agentstructs.SUPPORTED_OS_MACOS, agentstructs.SUPPORTED_OS_WINDOWS},
 		},
 		TaskFunctionParseArgString: func(args *agentstructs.PTTaskMessageArgsData, input string) error {
 			return nil

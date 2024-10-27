@@ -5,12 +5,13 @@
 </p>
 
 Freyja is a Golang, Purple Team agent that compiles into Windows, Linux and macOS x64 executables.  It is a very stripped down verion of the [Poseidon](https://github.com/MythicAgents/poseidon) payload from [@xorrior](https://github.com/xorrior), [@djhohnstein](https://github.com/djhohnstein), and [@its-a-feature](https://github.com/its-a-feature)
-This Freyja instance supports Mythic 3.0 and will be updated as necessary.
+
+This Freyja instance supports Mythic 3.0.0 and will be updated as necessary.
 It does not support Mythic 2.3 and lower.
 
 The agent has `mythic_payloadtype_container==0.1.8` PyPi package installed and reports to Mythic as version "12".
 
-Freyja uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Freyja uses these executors to run commands on the vicitm host machines.  Freyja will integrate with the upcoming Mythic Purple Team eXecution Framework (PTXF) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the PTXF!
+Freyja uses Red Canary's [Atomic Red Team (ART)](https://github.com/redcanaryco/atomic-red-team) "executor" concept.  Freyja uses these executors to run commands on the victim host machines.  Freyja will integrate with the upcoming Mythic Purple Team eXecution Framework (PTXF) to run ART atomics (test cases), custom atomics via yaml files, and atomic chains within fully customizable Purple Team campagins.  Stay tuned for the PTXF!
 
 Current Executors:
 - Windows powershell
@@ -31,13 +32,13 @@ Now, you might be wondering _when_ should you or a user do this to properly add 
 
 * Mythic is already up and going, then you can run the install script and just direct that agent's containers to start (i.e. `sudo ./mythic-cli start agentName` and if that agent has its own special C2 containers, you'll need to start them too via `sudo ./mythic-cli start c2profileName`).
 * Mythic is already up and going, but you want to minimize your steps, you can just install the agent and run `sudo ./mythic-cli start`. That script will first _stop_ all of your containers, then start everything back up again. This will also bring in the new agent you just installed.
-* Mythic isn't running, you can install the script and just run `sudo ./mythic-cli start`.
+* Mythic isn't running, you can install the script and just run `sudo ./mythic-cli start`. 
 
 ## Documentation
 
 The Freyja documentation source code can be found in the `documenation-payload/freyja` directory.
 View the rendered documentation by clicking on **Docs -> Agent Documentation** in the upper right-hand corner of the Mythic
-interface.
+interface. 
 
 ## Building Outside of Mythic
 
