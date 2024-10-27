@@ -16,6 +16,7 @@ import (
 var (
 	internalTCPConnections     = make(map[string]*net.Conn)
 	internalTCPConnectionMutex sync.RWMutex
+	internalTCPMapping         = make(map[string]string)
 )
 
 type freyjaTCP struct {
