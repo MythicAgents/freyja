@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"os"
+	"time"
 
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/enums/InteractiveTask"
 )
@@ -20,10 +21,16 @@ type Profile interface {
 	Stop()
 	// SetSleepInterval updates the sleep interval
 	SetSleepInterval(interval int) string
+	// GetSleepInterval returns the current sleep interval for the profile
+	GetSleepInterval() int
 	// SetSleepJitter updates the jitter percentage 0-100 to be used with the SleepInterval
 	SetSleepJitter(jitter int) string
+	// GetSleepJitter returns the current sleep jitter for the profile
+	GetSleepJitter() int
 	// GetSleepTime returns the number of seconds to sleep before making another request using interval and jitter
 	GetSleepTime() int
+	// GetKillDate returns the kill date for the profile
+	GetKillDate() time.Time
 	// SetEncryptionKey to synchronize all c2 profiles once one has finished staging
 	SetEncryptionKey(newKey string)
 	// GetConfig returns a string representation of the current configuration
@@ -60,6 +67,7 @@ type CheckInMessage struct {
 	IntegrityLevel int      `json:"integrity_level"`
 	ExternalIP     string   `json:"external_ip"`
 	ProcessName    string   `json:"process_name"`
+	SleepInfo      string   `json:"sleep_info"`
 }
 
 type CheckInMessageResponse struct {

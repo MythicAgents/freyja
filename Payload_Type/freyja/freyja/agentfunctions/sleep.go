@@ -40,8 +40,8 @@ func init() {
 			{
 				Name:             "jitter",
 				ModalDisplayName: "Jitter Percentage",
-				ParameterType:    agentstructs.COMMAND_PARAMETER_TYPE_NUMBER,
 				DefaultValue:     0,
+				ParameterType:    agentstructs.COMMAND_PARAMETER_TYPE_NUMBER,
 				ParameterGroupInformation: []agentstructs.ParameterGroupInfo{
 					{
 						ParameterIsRequired: false,

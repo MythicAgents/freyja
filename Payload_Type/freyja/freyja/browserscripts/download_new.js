@@ -9,9 +9,10 @@ function(task, responses){
         if(responses.length > 0){
             try{
                 let data = JSON.parse(responses[0]);
+                let filename_pieces = task.display_params.split("/");
                 return { "media": [{
-                        "filename": `${task.display_params}`,
-                        "agent_file_id": data["file_id"],
+                    "filename": `${filename_pieces[filename_pieces.length -1]}`,
+                    "agent_file_id": data["file_id"],
                     }]};
             }catch(error){
                 const combined = responses.reduce( (prev, cur) => {

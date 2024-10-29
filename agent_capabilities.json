@@ -6,10 +6,10 @@
       "p2p", "push c2", "rpfwd", "socks"],
       "custom": ["key exchange", "multiple egress", "killdate"]
     },
-    "payload_output": ["macho", "elf", "dll"],
+    "payload_output": ["macho", "elf", "dylib", "so", "dll"],
     "architectures": ["x86_64", "arm_64"],
     "c2": ["http", "websocket", "dynamichttp", "freyja_tcp"],
-    "mythic_version": "3.2",
-    "agent_version": "2.0",
+    "mythic_version": "3.3.0",
+    "agent_version": "2.1.9",
     "supported_wrappers": []
   }

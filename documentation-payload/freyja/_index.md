@@ -6,11 +6,11 @@ weight = 5
 ![logo](/agents/freyja/freyja.svg?width=200px)
 ## Summary
 
-Freyja is a Golang cross-platform (macOS, Windows, & Linux) purple team campaign agent that leverages CGO for OS-specific API calls.
+Freyja is a Golang cross-platform (macOS, Windows, & Linux) purple team campaign agent that leverages CGO for OS-specific API calls. 
 
 ### Highlighted Agent Features
-- Socks5 in agent proxy capability
 - Websockets protocol for C2
+- Socks5 in agent proxy capability
 - Optional HMAC+AES with EKE for encrypted comms
 
 ### Compilation Information
@@ -24,7 +24,7 @@ There are three options for file types when building a freyja payload
 
 #### c-shared
 
-The `c-shared` build mode will return a single file, a `.so` file for Linux or a `.dylib` file for macOS.
+The `c-shared` build mode will return a single file, a `.so` file for Linux or a `.dylib` file for macOS. 
 The shared library file does not incorporate the `sharedlib-darwin-linux.c` file.
 Because of this, the library will **NOT** automatically execute when it is loaded into a process,
 You must use the `c-archive` build mode for the library to automatically execute when loaded.
@@ -42,11 +42,11 @@ The following Python3 code can be used to test execution of the returned file:
 - In the payload type information section of the payload creation page, please select the `c-archive` buildmode option.
 - The resulting payload file will be a zip file.
   The zip contains the golang `.a` archive file, the `.h` header file and the `sharedlib-darwin-linux.c` file.
-- Edit `sharedlib-darwin-linux.c` and change the `include` statement on line 7 to match the name of the golang archive
+- Edit `sharedlib-darwin-linux.c` and change the `include` statement on line 7 to match the name of the golang archive 
   header file, if different.
 - Execute `ranlib freyja-darwin-10.12-amd64.a` to "update the table of contents of archive libraries".
 - Use `clang` to compile a dylib on macOS:
-  `clang -shared -framework Foundation -framework CoreGraphics -framework Security -framework ApplicationServices
+  `clang -shared -framework Foundation -framework CoreGraphics -framework Security -framework ApplicationServices 
   -framework OSAKit -framework AppKit -fpic sharedlib-darwin-linux.c freyja-darwin-10.12-amd64.a -o freyja.dylib`
 
 The following Python3 code can be used to test execution of shared library:
